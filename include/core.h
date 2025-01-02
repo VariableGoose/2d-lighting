@@ -11,3 +11,17 @@ typedef int8_t  i8;
 typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
+
+typedef float f32;
+typedef double f64;
+
+typedef u8 b8;
+typedef u32 b32;
+
+#ifndef true
+#define true ((b8) 1)
+#endif
+
+#ifndef false
+#define false ((b8) 0)
+#endif

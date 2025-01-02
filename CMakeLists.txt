@@ -23,6 +23,13 @@ if (EMSCRIPTEN)
         PROPERTIES
         COMPILE_FLAGS "${CFLAGS} ${EM_CFLAGS}"
     )
+    target_link_options(${CMAKE_PROJECT_NAME}
+        PRIVATE "-sMIN_WEBGL_VERSION=2"
+        PRIVATE "-sMAX_WEBGL_VERSION=2"
+    )
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+        GLESv2 EGL
+    )
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
 endif ()
 
