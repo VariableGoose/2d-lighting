@@ -31,6 +31,10 @@ if (EMSCRIPTEN)
         GLESv2 EGL
     )
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
+else ()
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+        GLFW3
+    )
 endif ()
 
 target_include_directories(web PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/")

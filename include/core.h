@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CORE_H
+#define CORE_H
 
 #include <stdint.h>
 
@@ -20,8 +21,10 @@ typedef u32 b32;
 
 #ifndef true
 #define true ((b8) 1)
-#endif
+#endif // true
 
 #ifndef false
 #define false ((b8) 0)
-#endif
+#endif // false
+
+#endif // CORE_H
