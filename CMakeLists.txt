@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.31)
 
-project(web)
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/libs/glad/")
+
+project(program)
 set(CMAKE_BUILD_TYPE "Debug")
 
 file(GLOB_RECURSE SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
@@ -15,6 +17,9 @@ set_target_properties(${CMAKE_PROJECT_NAME}
     COMPILE_FLAGS "-Wall -Wextra"
 )
 
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+
 if (EMSCRIPTEN)
     # This is needed in order to make intellisense work correctly.
     execute_process(COMMAND emcc --cflags OUTPUT_VARIABLE EM_CFLAGS)
@@ -27,14 +32,8 @@ if (EMSCRIPTEN)
         PRIVATE "-sMIN_WEBGL_VERSION=2"
         PRIVATE "-sMAX_WEBGL_VERSION=2"
     )
-    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-        GLESv2 EGL
-    )
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE EGL)
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
 else ()
-    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-        GLFW3
-    )
+    target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glfw)
 endif ()
-
-target_include_directories(web PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/")

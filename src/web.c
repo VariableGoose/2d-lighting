@@ -13,7 +13,7 @@
 #include <emscripten/html5.h>
 
 #include <EGL/egl.h>
-#include <GLES2/gl2.h>
+#include <glad/gles2.h>
 
 typedef struct em_renderer_t em_renderer_t;
 struct em_renderer_t {
@@ -86,6 +86,8 @@ renderer_t* renderer_new(u32 width, u32 height, const char *title) {
         .data = em_rend,
     };
 
+    gladLoaderLoadGLES2();
+
     emscripten_set_resize_callback("#canvas", NULL, true, internal_resize_cb);
     emscripten_set_canvas_element_size("#canvas", width, height);
     emscripten_set_window_title(title);
@@ -95,6 +97,8 @@ renderer_t* renderer_new(u32 width, u32 height, const char *title) {
 
 void renderer_free(renderer_t* renderer) {
     em_renderer_t* em_rend = renderer->data;
+
+    gladLoaderUnloadGLES2();
 
     eglMakeCurrent(em_rend->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
     eglDestroyContext(em_rend->display, em_rend->context);

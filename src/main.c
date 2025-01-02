@@ -4,13 +4,15 @@
 #include <stdio.h>
 
 #ifdef __EMSCRIPTEN__
-#include <GLES3/gl3.h>
+#include <glad/gles2.h>
+#else
+#include <glad/gl.h>
 #endif // __EMSCRIPTEN__
 
 void resize_cb(renderer_t* renderer, i32 width, i32 height) {
     (void) renderer;
-    glViewport(0, 0, width, height);
     printf("Resize: %dx%d\n", width, height);
+    glViewport(0, 0, width, height);
 }
 
 void update(renderer_t* rend) {
