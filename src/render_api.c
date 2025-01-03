@@ -110,7 +110,7 @@ shader_t shader_create(str_t vertex_source, str_t fragment_source) {
     glGetShaderiv(f_shader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(f_shader, sizeof(info_log), NULL, info_log);
-        printf("Vertex shader compilation error: %s\n", info_log);
+        printf("Fragment shader compilation error: %s\n", info_log);
         return (shader_t) {0};
     }
 
@@ -137,4 +137,124 @@ void shader_destroy(shader_t shader) {
 
 void shader_use(shader_t shader) {
     glUseProgram(shader.handle);
+}
+
+// -- Texture ------------------------------------------------------------------
+
+texture_t texture_create(texture_desc_t desc) {
+    u32 gl_internal_format;
+    u32 gl_format;
+    switch (desc.format) {
+        case TEXTURE_FORMAT_R_U8:
+            gl_internal_format = GL_R8;
+            gl_format = GL_RED;
+            break;
+        case TEXTURE_FORMAT_RG_U8:
+            gl_internal_format = GL_RG8;
+            gl_format = GL_RG;
+            break;
+        case TEXTURE_FORMAT_RGB_U8:
+            gl_internal_format = GL_RGB8;
+            gl_format = GL_RGB;
+            break;
+        case TEXTURE_FORMAT_RGBA_U8:
+            gl_internal_format = GL_RGBA8;
+            gl_format = GL_RGBA;
+            break;
+
+        case TEXTURE_FORMAT_R_F16:
+            gl_internal_format = GL_R16F;
+            gl_format = GL_RED;
+            break;
+        case TEXTURE_FORMAT_RG_F16:
+            gl_internal_format = GL_RG16F;
+            gl_format = GL_RG;
+            break;
+        case TEXTURE_FORMAT_RGB_F16:
+            gl_internal_format = GL_RGB16F;
+            gl_format = GL_RGB;
+            break;
+        case TEXTURE_FORMAT_RGBA_F16:
+            gl_internal_format = GL_RGBA16F;
+            gl_format = GL_RGBA;
+            break;
+
+        case TEXTURE_FORMAT_R_F32:
+            gl_internal_format = GL_R32F;
+            gl_format = GL_RED;
+            break;
+        case TEXTURE_FORMAT_RG_F32:
+            gl_internal_format = GL_RG32F;
+            gl_format = GL_RG;
+            break;
+        case TEXTURE_FORMAT_RGB_F32:
+            gl_internal_format = GL_RGB32F;
+            gl_format = GL_RGB;
+            break;
+        case TEXTURE_FORMAT_RGBA_F32:
+            gl_internal_format = GL_RGBA32F;
+            gl_format = GL_RGBA;
+            break;
+    }
+
+    u32 gl_type;
+    switch (desc.format) {
+        case TEXTURE_FORMAT_R_U8:
+        case TEXTURE_FORMAT_RG_U8:
+        case TEXTURE_FORMAT_RGB_U8:
+        case TEXTURE_FORMAT_RGBA_U8:
+            gl_type = GL_UNSIGNED_BYTE;
+            break;
+
+        case TEXTURE_FORMAT_R_F16:
+        case TEXTURE_FORMAT_RG_F16:
+        case TEXTURE_FORMAT_RGB_F16:
+        case TEXTURE_FORMAT_RGBA_F16:
+        case TEXTURE_FORMAT_R_F32:
+        case TEXTURE_FORMAT_RG_F32:
+        case TEXTURE_FORMAT_RGB_F32:
+        case TEXTURE_FORMAT_RGBA_F32:
+            gl_type = GL_FLOAT;
+            break;
+    }
+
+    u32 gl_sampler;
+    switch (desc.sampler) {
+        case TEXTURE_SAMPLER_LINEAR:
+            gl_sampler = GL_LINEAR;
+            break;
+        case TEXTURE_SAMPLER_NEAREST:
+            gl_sampler = GL_NEAREST;
+            break;
+    }
+
+    texture_t tex = {0};
+    glGenTextures(1, &tex.handle);
+    glBindTexture(GL_TEXTURE_2D, tex.handle);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_sampler);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_sampler);
+
+    glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            gl_internal_format,
+            desc.width,
+            desc.height,
+            0,
+            gl_format,
+            gl_type,
+            desc.data);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return tex;
+}
+
+void texture_destroy(texture_t texture) {
+    glDeleteTextures(1, &texture.handle);
+}
+
+void texture_bind(texture_t texture, u32 slot) {
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_2D, texture.handle);
 }

@@ -35,6 +35,7 @@ renderer_t* renderer_new(u32 width, u32 height, const char *title)  {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_RESIZABLE, false);
     dt->window = glfwCreateWindow(width, height, title, NULL, NULL);
     glfwMakeContextCurrent(dt->window);
     glfwSetWindowUserPointer(dt->window, rend);
@@ -62,6 +63,11 @@ void renderer_swap_buffers(renderer_t* renderer) {
 
 void renderer_run(renderer_t* renderer) {
     dt_renderer_t* dt= renderer->data;
+    if (renderer->resize_cb != NULL) {
+        i32 w, h;
+        glfwGetWindowSize(dt->window, &w, &h);
+        renderer->resize_cb(renderer, w, h);
+    }
     while (!glfwWindowShouldClose(dt->window)) {
         if (renderer->update_cb != NULL) {
             renderer->update_cb(renderer);
