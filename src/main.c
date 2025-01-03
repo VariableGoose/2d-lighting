@@ -63,6 +63,7 @@ struct model_t {
     u32 vbo;
     u32 ibo;
     shader_t shader;
+    u32 index_count;
 };
 
 model_t setup_triangle(void) {
@@ -73,11 +74,13 @@ model_t setup_triangle(void) {
     f32 verts[] = {
         -0.5f, -0.5f,
          0.5f, -0.5f,
-         0.0f,  0.5f,
+        -0.5f,  0.5f,
+         0.5f,  0.5f,
     };
 
     u32 indices[] = {
         0, 1, 2,
+        2, 3, 1,
     };
 
     u32 vbo = 0;
@@ -110,6 +113,7 @@ model_t setup_triangle(void) {
         .vbo = vbo,
         .ibo = ibo,
         .shader = shader,
+        .index_count = arr_len(indices),
     };
 }
 
@@ -119,7 +123,7 @@ void draw_model(model_t model) {
     glBindVertexArray(model.vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model.ibo);
 
-    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, NULL);
+    glDrawElements(GL_TRIANGLES, model.index_count, GL_UNSIGNED_INT, NULL);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindVertexArray(0);

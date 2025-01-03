@@ -28,6 +28,8 @@ typedef u32 b32;
 #define false ((b8) 0)
 #endif // false
 
+#define arr_len(ARR) (sizeof(ARR) / sizeof((ARR)[0]))
+
 #define min(A, B) ((A) > (B) ? (B) : (A))
 #define max(A, B) ((A) > (B) ? (A) : (B))
 
