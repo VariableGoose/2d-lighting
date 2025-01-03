@@ -31,6 +31,7 @@ if (EMSCRIPTEN)
     target_link_options(${CMAKE_PROJECT_NAME}
         PRIVATE "-sMIN_WEBGL_VERSION=2"
         PRIVATE "-sMAX_WEBGL_VERSION=2"
+        PRIVATE "--preload-file=../assets/"
     )
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE EGL)
     set(CMAKE_EXECUTABLE_SUFFIX ".html")

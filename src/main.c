@@ -9,6 +9,8 @@
 #include <glad/gl.h>
 #endif // __EMSCRIPTEN__
 
+static arena_t* arena = NULL;
+
 typedef struct shader_t shader_t;
 struct shader_t {
     u32 handle;
@@ -64,23 +66,8 @@ struct model_t {
 };
 
 model_t setup_triangle(void) {
-    str_t vert = str_lit(
-            "#version 300 es\n"
-            "layout (location = 0) in vec2 a_pos;\n"
-            "void main() {\n"
-            "    gl_Position = vec4(a_pos, 0.0, 1.0);\n"
-            "}\0"
-        );
-    str_t frag = str_lit(
-            "#version 300 es\n"
-            "#ifdef GL_ES\n"
-            "precision mediump float;\n"
-            "#endif\n"
-            "layout (location = 0) out vec4 frag_color;\n"
-            "void main() {\n"
-            "    frag_color = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-            "}\0"
-        );
+    str_t vert = str_read_file(arena, str_lit("assets/shaders/vert.glsl"));
+    str_t frag = str_read_file(arena, str_lit("assets/shaders/frag.glsl"));
     shader_t shader = shader_new(vert, frag);
 
     f32 verts[] = {
@@ -155,6 +142,8 @@ void update(renderer_t* rend) {
 }
 
 i32 main(void) {
+    arena = arena_new(4<<20);
+
     renderer_t* rend = renderer_new(800, 600, "What");
     rend->resize_cb = resize_cb;
     rend->update_cb = update;
