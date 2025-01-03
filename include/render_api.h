@@ -38,4 +38,15 @@ extern void index_buffer_destroy(index_buffer_t buffer);
 extern void index_buffer_bind(index_buffer_t buffer);
 extern void index_buffer_unbind(void);
 
+// -- Shader -------------------------------------------------------------------
+
+typedef struct shader_t shader_t;
+struct shader_t {
+    u32 handle;
+};
+
+extern shader_t shader_create(str_t vertex_source, str_t fragment_source);
+extern void shader_destroy(shader_t shader);
+extern void shader_use(shader_t shader);
+
 #endif // RENDER_API_H

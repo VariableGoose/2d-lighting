@@ -12,52 +12,6 @@
 
 static arena_t* arena = NULL;
 
-typedef struct shader_t shader_t;
-struct shader_t {
-    u32 handle;
-};
-
-shader_t shader_new(str_t vertex_source, str_t fragment_source) {
-    i32 success = 0;
-    char info_log[512] = {0};
-
-    u32 v_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(v_shader, 1, (const char* const*) &vertex_source.data, (const int*) &vertex_source.len);
-    glCompileShader(v_shader);
-    glGetShaderiv(v_shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(v_shader, sizeof(info_log), NULL, info_log);
-        printf("Vertex shader compilation error: %s\n", info_log);
-        return (shader_t) {0};
-    }
-
-    u32 f_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(f_shader, 1, (const char* const*) &fragment_source.data, (const int*) &fragment_source.len);
-    glCompileShader(f_shader);
-    glGetShaderiv(f_shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(f_shader, sizeof(info_log), NULL, info_log);
-        printf("Vertex shader compilation error: %s\n", info_log);
-        return (shader_t) {0};
-    }
-
-    u32 program = glCreateProgram();
-    glAttachShader(program, v_shader);
-    glAttachShader(program, f_shader);
-    glLinkProgram(program);
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(program, 512, NULL, info_log);
-        printf("Shader linking error: %s\n", info_log);
-        return (shader_t) {0};
-    }
-
-    glDeleteShader(v_shader);
-    glDeleteShader(f_shader);
-
-    return (shader_t) { program };
-}
-
 typedef struct model_t model_t;
 struct model_t {
     u32 vao;
@@ -66,23 +20,38 @@ struct model_t {
     shader_t shader;
 };
 
+typedef struct vertex_t vertex_t;
+struct vertex_t {
+    f32 pos[3];
+    f32 color[4];
+};
+
 model_t setup_triangle(void) {
     str_t vert = str_read_file(arena, str_lit("assets/shaders/vert.glsl"));
     str_t frag = str_read_file(arena, str_lit("assets/shaders/frag.glsl"));
-    shader_t shader = shader_new(vert, frag);
+    shader_t shader = shader_create(vert, frag);
 
-    f32 verts[] = {
-        -0.5f, -0.5f,
-         0.5f, -0.5f,
-        -0.5f,  0.5f,
-         0.5f,  0.5f,
+    // Triangle
+    vertex_t verts[] = {
+        {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+        {{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+        {{ 0.0f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
     };
+    u32 indices[] = {0, 1, 2};
+
+    // Quad
+    // vertex_t verts[] = {
+    //     {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+    //     {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+    //     {{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+    //     {{ 0.5f,  0.5f}, {1.0f, 0.0f, 1.0f, 1.0f}},
+    // };
+    // u32 indices[] = {
+    //     0, 1, 2,
+    //     2, 3, 1,
+    // };
+
     vertex_buffer_t vbo = vertex_buffer_create(verts, sizeof(verts), BUFFER_USAGE_STATIC);
-
-    u32 indices[] = {
-        0, 1, 2,
-        2, 3, 1,
-    };
     index_buffer_t ibo = index_buffer_create(indices, arr_len(indices), BUFFER_USAGE_STATIC);
 
     u32 vao = 0;
@@ -92,8 +61,10 @@ model_t setup_triangle(void) {
     vertex_buffer_bind(vbo);
 
     // Vertex layout
-    glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * sizeof(f32), (const void*) 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(vertex_t), (const void*) offset(vertex_t, pos));
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, false, sizeof(vertex_t), (const void*) offset(vertex_t, color));
+    glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -107,7 +78,7 @@ model_t setup_triangle(void) {
 }
 
 void draw_model(model_t model) {
-    glUseProgram(model.shader.handle);
+    shader_use(model.shader);
 
     glBindVertexArray(model.vao);
     index_buffer_bind(model.ibo);

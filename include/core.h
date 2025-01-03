@@ -29,6 +29,7 @@ typedef u32 b32;
 #endif // false
 
 #define arr_len(ARR) (sizeof(ARR) / sizeof((ARR)[0]))
+#define offset(S, M) ((u32) (((S*) 0)->M))
 
 #define min(A, B) ((A) > (B) ? (B) : (A))
 #define max(A, B) ((A) > (B) ? (A) : (B))
