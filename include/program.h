@@ -11,8 +11,10 @@ typedef void (*update_callback_t)(renderer_t* renderer);
 struct renderer_t {
     // Resize callback
     resize_callback_t resize_cb;
-    // Update callback; will be called once per frame.
+    // Update callback; will be called once per frame
     update_callback_t update_cb;
+    // User data
+    void* user_ptr;
 
     // Internal data
     void* data;

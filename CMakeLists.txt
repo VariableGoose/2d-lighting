@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.31)
+project(program)
 
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/libs/glad/")
 
-project(program)
 set(CMAKE_BUILD_TYPE "Debug")
 
 file(GLOB_RECURSE SOURCE CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")

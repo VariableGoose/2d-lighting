@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.31)
 
-project(glad)
+add_library(glad STATIC)
+
+target_include_directories(glad PUBLIC "include/")
+
 if (NOT EMSCRIPTEN)
-    add_library(${CMAKE_PROJECT_NAME} STATIC "src/gl.c")
+    target_sources(glad PRIVATE "src/gl.c")
 else ()
-    add_library(${CMAKE_PROJECT_NAME} STATIC "src/gles2.c")
+    target_sources(glad PRIVATE "src/gles2.c")
 endif ()
-target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC "include/")

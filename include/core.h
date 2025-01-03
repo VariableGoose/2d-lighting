@@ -2,6 +2,7 @@
 #define CORE_H
 
 #include <stdint.h>
+#include <string.h>
 
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -26,5 +27,19 @@ typedef u32 b32;
 #ifndef false
 #define false ((b8) 0)
 #endif // false
+
+// -- String -------------------------------------------------------------------
+// Length based strings.
+
+typedef struct str_t str_t;
+struct str_t {
+    const u8* data;
+    u32 len;
+};
+
+extern str_t str(const u8* data, u32 len);
+
+#define str_cstr(CSTR) str((const u8*) (CSTR), strlen(CSTR))
+#define str_lit(LIT) str((const u8*) (LIT), sizeof(LIT) - 1)
 
 #endif // CORE_H
