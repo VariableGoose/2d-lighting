@@ -1,5 +1,6 @@
 #include "core.h"
 #include "program.h"
+#include "render_api.h"
 
 #include <stdio.h>
 
@@ -60,10 +61,9 @@ shader_t shader_new(str_t vertex_source, str_t fragment_source) {
 typedef struct model_t model_t;
 struct model_t {
     u32 vao;
-    u32 vbo;
-    u32 ibo;
+    vertex_buffer_t vbo;
+    index_buffer_t ibo;
     shader_t shader;
-    u32 index_count;
 };
 
 model_t setup_triangle(void) {
@@ -77,29 +77,19 @@ model_t setup_triangle(void) {
         -0.5f,  0.5f,
          0.5f,  0.5f,
     };
+    vertex_buffer_t vbo = vertex_buffer_create(verts, sizeof(verts), BUFFER_USAGE_STATIC);
 
     u32 indices[] = {
         0, 1, 2,
         2, 3, 1,
     };
-
-    u32 vbo = 0;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    u32 ibo = 0;
-    glGenBuffers(1, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    index_buffer_t ibo = index_buffer_create(indices, arr_len(indices), BUFFER_USAGE_STATIC);
 
     u32 vao = 0;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     // Bind vbo to vao
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    vertex_buffer_bind(vbo);
 
     // Vertex layout
     glVertexAttribPointer(0, 2, GL_FLOAT, false, 2 * sizeof(f32), (const void*) 0);
@@ -113,7 +103,6 @@ model_t setup_triangle(void) {
         .vbo = vbo,
         .ibo = ibo,
         .shader = shader,
-        .index_count = arr_len(indices),
     };
 }
 
@@ -121,9 +110,9 @@ void draw_model(model_t model) {
     glUseProgram(model.shader.handle);
 
     glBindVertexArray(model.vao);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model.ibo);
+    index_buffer_bind(model.ibo);
 
-    glDrawElements(GL_TRIANGLES, model.index_count, GL_UNSIGNED_INT, NULL);
+    glDrawElements(GL_TRIANGLES, model.ibo.count, GL_UNSIGNED_INT, NULL);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -148,7 +137,7 @@ void update(renderer_t* rend) {
 i32 main(void) {
     arena = arena_new(4<<20);
 
-    renderer_t* rend = renderer_new(800, 600, "What");
+    renderer_t* rend = renderer_new(800, 600, "Cross-platform rendering");
     rend->resize_cb = resize_cb;
     rend->update_cb = update;
 
