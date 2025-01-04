@@ -1,5 +1,7 @@
 // TODO:
-// - Framebuffers
+// - A huge mistake has been made. Just make the damn renderer man. Screw the
+// Vulkan stuff. Just make it how you want it.
+// TL;DR refactor everything to work how you want it.
 // - Render passes
 // - Fix texture formats
 
@@ -67,6 +69,30 @@ quad_t quad_setup(void) {
     str_t vert = str_read_file(arena, str_lit("assets/shaders/screen_quad.vert.glsl"));
     str_t frag = str_read_file(arena, str_lit("assets/shaders/screen_quad.frag.glsl"));
     shader_t shader = shader_create(vert, frag);
+
+    vertex_layout_t layout = {
+        .attribs = (vertex_attribute_t[]) {
+            // Position
+            {
+                .offset = offset(vertex_t, pos),
+                .type = VERTEX_ATTRIB_TYPE_F32,
+                .count = 2,
+            },
+            // UV
+            {
+                .offset = offset(vertex_t, uv),
+                .type = VERTEX_ATTRIB_TYPE_F32,
+                .count = 2,
+            },
+        },
+        .attrib_count = 2,
+        .stride = sizeof(vertex_t),
+    };
+
+    pipeline_t desc = {
+        .vertex_layout = layout,
+        .shader = shader,
+    };
 
     return (quad_t) {
         .vbo = vbo,
