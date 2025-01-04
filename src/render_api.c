@@ -258,3 +258,48 @@ void texture_bind(texture_t texture, u32 slot) {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, texture.handle);
 }
+
+// -- Framebuffer --------------------------------------------------------------
+
+framebuffer_t framebuffer_create(void) {
+    framebuffer_t fb = {0};
+    glGenFramebuffers(1, &fb.handle);
+    return fb;
+}
+
+void framebuffer_destroy(framebuffer_t fb) {
+    glDeleteFramebuffers(1, &fb.handle);
+}
+
+void framebuffer_bind(framebuffer_t fb) {
+    glBindFramebuffer(GL_FRAMEBUFFER, fb.handle);
+}
+
+void framebuffer_unbind(void) {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+extern void framebuffer_attach(framebuffer_t fb,
+        framebuffer_attachment_t attachment,
+        u32 slot,
+        texture_t texture)    {
+    u32 gl_attachment;
+    switch (attachment) {
+        case FRAMEBUFFER_ATTACHMENT_COLOR:
+            gl_attachment = GL_COLOR_ATTACHMENT0 + slot;
+            break;
+        case FRAMEBUFFER_ATTACHMENT_DEPTH:
+            gl_attachment = GL_DEPTH_ATTACHMENT;
+            break;
+        case FRAMEBUFFER_ATTACHMENT_STENCIL:
+            gl_attachment = GL_STENCIL_ATTACHMENT;
+            break;
+    }
+    framebuffer_bind(fb);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,
+            gl_attachment,
+            GL_TEXTURE_2D,
+            texture.handle,
+            0);
+    framebuffer_unbind();
+}

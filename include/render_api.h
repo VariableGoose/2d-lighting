@@ -91,4 +91,27 @@ extern texture_t texture_create(texture_desc_t desc);
 extern void texture_destroy(texture_t texture);
 extern void texture_bind(texture_t texture, u32 slot);
 
+// -- Framebuffer --------------------------------------------------------------
+
+typedef struct framebuffer_t framebuffer_t;
+struct framebuffer_t {
+    u32 handle;
+};
+
+typedef enum framebuffer_attachment_t{
+    FRAMEBUFFER_ATTACHMENT_COLOR,
+    FRAMEBUFFER_ATTACHMENT_DEPTH,
+    FRAMEBUFFER_ATTACHMENT_STENCIL,
+} framebuffer_attachment_t;
+
+extern framebuffer_t framebuffer_create(void);
+extern void framebuffer_destroy(framebuffer_t fb);
+extern void framebuffer_bind(framebuffer_t fb);
+extern void framebuffer_unbind(void);
+// The slot can only be non 0 if the attachment is 'FRAMEBUFFER_ATTACHMENT_COLOR'.
+extern void framebuffer_attach(framebuffer_t fb,
+        framebuffer_attachment_t attachment,
+        u32 slot,
+        texture_t texture);
+
 #endif // RENDER_API_H
