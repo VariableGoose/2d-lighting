@@ -29,7 +29,7 @@ typedef u32 b32;
 #endif // false
 
 #define arr_len(ARR) (sizeof(ARR) / sizeof((ARR)[0]))
-#define offset(S, M) ((u64) (((S*) 0)->M))
+#define offset(S, M) ((u64) &(((S*) 0)->M))
 
 #define min(A, B) ((A) > (B) ? (B) : (A))
 #define max(A, B) ((A) > (B) ? (A) : (B))
@@ -45,6 +45,8 @@ extern void arena_free(arena_t* arena);
 extern void* arena_push(arena_t* arena, u32 size);
 extern void arena_pop(arena_t* arena, u32 size);
 extern void arena_clear(arena_t* arena);
+
+#define arena_push_type(ARENA, T) arena_push((ARENA), sizeof(T))
 
 // -- String -------------------------------------------------------------------
 // Length based strings.

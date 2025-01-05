@@ -17,7 +17,7 @@ set_target_properties(${CMAKE_PROJECT_NAME}
     COMPILE_FLAGS "-Wall -Wextra"
 )
 
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glad m)
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/")
 
 if (EMSCRIPTEN)

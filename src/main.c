@@ -18,6 +18,7 @@
 #endif // __EMSCRIPTEN__
 
 static arena_t* arena = NULL;
+static arena_t* frame_arena = NULL;
 
 typedef struct quad_t quad_t;
 struct quad_t {
@@ -30,7 +31,7 @@ struct quad_t {
 typedef struct vertex_t vertex_t;
 struct vertex_t {
     f32 pos[3];
-    f32 color[4];
+    color_t color;
     f32 uv[2];
 };
 
@@ -70,30 +71,6 @@ quad_t quad_setup(void) {
     str_t frag = str_read_file(arena, str_lit("assets/shaders/screen_quad.frag.glsl"));
     shader_t shader = shader_create(vert, frag);
 
-    vertex_layout_t layout = {
-        .attribs = (vertex_attribute_t[]) {
-            // Position
-            {
-                .offset = offset(vertex_t, pos),
-                .type = VERTEX_ATTRIB_TYPE_F32,
-                .count = 2,
-            },
-            // UV
-            {
-                .offset = offset(vertex_t, uv),
-                .type = VERTEX_ATTRIB_TYPE_F32,
-                .count = 2,
-            },
-        },
-        .attrib_count = 2,
-        .stride = sizeof(vertex_t),
-    };
-
-    pipeline_t desc = {
-        .vertex_layout = layout,
-        .shader = shader,
-    };
-
     return (quad_t) {
         .vbo = vbo,
         .ibo = ibo,
@@ -120,6 +97,7 @@ struct state_t {
     index_buffer_t ibo;
     texture_t texture;
     shader_t shader;
+    pipeline_t pipeline;
 
     quad_t screen_quad;
 };
@@ -186,6 +164,36 @@ state_t setup_state(void) {
             .format = TEXTURE_FORMAT_RGBA_U8,
         });
 
+    vertex_layout_t layout = {
+        .attribs = (vertex_attribute_t[]) {
+            // Position
+            {
+                .offset = offset(vertex_t, pos),
+                .type = VERTEX_ATTRIB_TYPE_F32,
+                .count = 3,
+            },
+            // Color
+            {
+                .offset = offset(vertex_t, color),
+                .type = VERTEX_ATTRIB_TYPE_F32,
+                .count = 4,
+            },
+            // UV
+            {
+                .offset = offset(vertex_t, uv),
+                .type = VERTEX_ATTRIB_TYPE_F32,
+                .count = 2,
+            },
+        },
+        .attrib_count = 3,
+        .stride = sizeof(vertex_t),
+    };
+
+    pipeline_t pipeline = pipeline_create((pipeline_desc_t) {
+            .vertex_layout = layout,
+            .shader = shader,
+        });
+
     return (state_t) {
         .fb = fb,
         .screen_texture = screen_texture,
@@ -196,6 +204,7 @@ state_t setup_state(void) {
         .texture = texture,
         .shader = shader,
 
+        .pipeline = pipeline,
         .screen_quad = quad_setup(),
     };
 }
@@ -206,33 +215,41 @@ void resize_cb(renderer_t* renderer, i32 width, i32 height) {
     glViewport(0, 0, width, height);
 }
 
-void draw(state_t state) {
-    framebuffer_bind(state.fb);
-    {
-        glClear(GL_COLOR_BUFFER_BIT);
-        glClearColor(100.0f/0xff, 149.0f/0xff, 237.0f/0xff, 1.0f);
-
-        texture_bind(state.texture, 0);
-        shader_use(state.shader);
-        glBindVertexArray(state.vao);
-        index_buffer_bind(state.ibo);
-        glDrawElements(GL_TRIANGLES, state.ibo.count, GL_UNSIGNED_INT, NULL);
-
-    }
-    framebuffer_unbind();
-
-    quad_draw(state.screen_quad, state.screen_texture);
-}
-
 void update(renderer_t* rend) {
     state_t* state = rend->user_ptr;
-    draw(*state);
+
+    // quad_draw(state->screen_quad, state->texture);
+    //
+    // renderer_swap_buffers(rend);
+    // return;
+    arena_clear(frame_arena);
+
+    cmd_buffer_t buff = cmd_buffer_init(frame_arena);
+    cmd_buffer_begin(&buff);
+    cmd_render_pass_begin(&buff, (render_pass_t) {
+            .target = state->screen_texture,
+            .load_op = LOAD_OP_LOAD,
+            .clear_color = color_rgb_hex(0x6495ed),
+        });
+
+    cmd_bind_pipeline(&buff, state->pipeline);
+    cmd_bind_vertex_buffer(&buff, state->vbo);
+    cmd_bind_index_buffer(&buff, state->ibo);
+
+    cmd_draw_indexed(&buff, state->ibo.count, 0);
+
+    cmd_render_pass_end(&buff);
+    cmd_buffer_end(&buff);
+    cmd_buffer_submit(&buff);
+
+    quad_draw(state->screen_quad, state->screen_texture);
 
     renderer_swap_buffers(rend);
 }
 
 i32 main(void) {
     arena = arena_new(4<<20);
+    frame_arena = arena_new(4<<20);
 
     renderer_t* rend = renderer_new(800, 600, "Cross-platform rendering");
     rend->resize_cb = resize_cb;
