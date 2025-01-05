@@ -167,16 +167,19 @@ struct pipeline_t {
     shader_t shader;
     vertex_layout_t vertex_layout;
     u32 vao_handle;
+    vertex_buffer_t vertex_buffer;
 };
 
 typedef struct pipeline_desc_t pipeline_desc_t;
 struct pipeline_desc_t {
     shader_t shader;
     vertex_layout_t vertex_layout;
+    vertex_buffer_t vertex_buffer;
 };
 
 extern pipeline_t pipeline_create(pipeline_desc_t desc);
 extern void pipeline_destroy(pipeline_t pipeline);
+extern void pipeline_bind(pipeline_t pipeline);
 
 // -- Render pass --------------------------------------------------------------
 
@@ -185,87 +188,29 @@ typedef enum load_op_t {
     LOAD_OP_CLEAR,
 } load_op_t;
 
-typedef struct render_pass_t render_pass_t;
-struct render_pass_t {
+typedef struct render_pass_desc_t render_pass_desc_t;
+struct render_pass_desc_t {
     texture_t target;
     load_op_t load_op;
     color_t clear_color;
 };
 
-// -- Command buffer -----------------------------------------------------------
+typedef struct render_pass_t render_pass_t;
+struct render_pass_t {
+    texture_t target;
+    load_op_t load_op;
+    color_t clear_color;
 
-typedef enum cmd_type_t {
-    CMD_TYPE_RENDER_PASS_BEGIN,
-    CMD_TYPE_RENDER_PASS_END,
-
-    CMD_TYPE_BIND_PIPELINE,
-    CMD_TYPE_BIND_VERTEX_BUFFER,
-    CMD_TYPE_BIND_INDEX_BUFFER,
-
-    CMD_TYPE_DRAW,
-    CMD_TYPE_DRAW_INDEXED,
-} cmd_type_t;
-
-typedef union cmd_data_t cmd_data_t;
-union cmd_data_t {
-    // CMD_TYPE_RENDER_PASS_BEGIN
-    render_pass_t render_pass;
-    // CMD_TYPE_BIND_PIPELINE
-    pipeline_t pipeline;
-    // CMD_TYPE_BIND_VERTEX_BUFFER
-    vertex_buffer_t vertex_buffer;
-    // CMD_TYPE_BIND_INDEX_BUFFER
-    index_buffer_t index_buffer;
-    // CMD_TYPE_DRAW
-    // CMD_TYPE_INDEXED
-    struct {
-        u32 count;
-        u32 first_offset;
-    } draw;
+    framebuffer_t target_fb;
 };
 
-typedef struct cmd_t cmd_t;
-struct cmd_t {
-    cmd_t *next;
-    cmd_t *prev;
-    cmd_type_t type;
-    cmd_data_t data;
-};
+extern render_pass_t render_pass_create(render_pass_desc_t desc);
+extern void render_pass_destroy(render_pass_t pass);
 
-typedef struct cmd_list_t cmd_list_t;
-struct cmd_list_t {
-    cmd_t *first;
-    cmd_t *last;
-};
+extern void render_pass_begin(render_pass_t* pass);
+extern void render_pass_end(render_pass_t* pass);
 
-typedef struct cmd_buffer_t cmd_buffer_t;
-struct cmd_buffer_t {
-    arena_t* arena;
-    cmd_list_t list;
-
-    b8 pipeline_bound;
-    pipeline_t current_pipeline;
-
-    b8 vertex_buffer_bound;
-
-    b8 index_buffer_bound;
-    index_buffer_t current_index_buffer;
-};
-
-extern cmd_buffer_t cmd_buffer_init(arena_t* arena);
-
-extern void cmd_buffer_begin(cmd_buffer_t* buffer);
-extern void cmd_buffer_end(cmd_buffer_t* buffer);
-extern void cmd_buffer_submit(cmd_buffer_t* buffer);
-
-extern void cmd_render_pass_begin(cmd_buffer_t* buffer, render_pass_t pass);
-extern void cmd_render_pass_end(cmd_buffer_t* buffer);
-
-extern void cmd_bind_pipeline(cmd_buffer_t* buffer, pipeline_t pipeline);
-extern void cmd_bind_vertex_buffer(cmd_buffer_t* buffer, vertex_buffer_t vertex_buffer);
-extern void cmd_bind_index_buffer(cmd_buffer_t* buffer, index_buffer_t index_buffer);
-
-extern void cmd_draw(cmd_buffer_t* buffer, u32 vertex_count, u32 first_vertex);
-extern void cmd_draw_indexed(cmd_buffer_t* buffer, u32 index_count, u32 first_index);
+extern void draw(u32 vertex_count, u32 first_vertex);
+extern void draw_indexed(u32 index_count, u32 first_index);
 
 #endif // RENDER_API_H

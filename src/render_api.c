@@ -377,7 +377,6 @@ extern void framebuffer_attach(framebuffer_t fb,
             GL_TEXTURE_2D,
             texture.handle,
             0);
-    framebuffer_unbind();
 }
 
 // -- Pipeline -----------------------------------------------------------------
@@ -386,8 +385,29 @@ pipeline_t pipeline_create(pipeline_desc_t desc) {
     pipeline_t pipeline = {
         .shader = desc.shader,
         .vertex_layout = desc.vertex_layout,
+        .vertex_buffer = desc.vertex_buffer,
     };
     glGenVertexArrays(1, &pipeline.vao_handle);
+    glBindVertexArray(pipeline.vao_handle);
+    vertex_buffer_bind(desc.vertex_buffer);
+
+    vertex_layout_t layout = desc.vertex_layout;
+    for (u32 i = 0; i < layout.attrib_count; i++) {
+        u32 gl_type;
+        switch (layout.attribs[i].type) {
+            case VERTEX_ATTRIB_TYPE_F32:
+                gl_type = GL_FLOAT;
+                break;
+        }
+        glVertexAttribPointer(i,
+                layout.attribs[i].count,
+                gl_type,
+                false,
+                layout.stride,
+                (const void*) (layout.attribs[i].offset * sizeof(u8)));
+        glEnableVertexAttribArray(i);
+    }
+
     return pipeline;
 }
 
@@ -395,168 +415,48 @@ void pipeline_destroy(pipeline_t pipeline) {
     glDeleteVertexArrays(1, &pipeline.vao_handle);
 }
 
-// -- Command buffer -----------------------------------------------------------
+void pipeline_bind(pipeline_t pipeline) {
+    shader_use(pipeline.shader);
+    glBindVertexArray(pipeline.vao_handle);
+}
 
-cmd_buffer_t cmd_buffer_init(arena_t* arena) {
-    cmd_buffer_t buf = {
-        .arena = arena,
+// -- Render pass -----------------------------------------------------------
+
+render_pass_t render_pass_create(render_pass_desc_t desc) {
+    render_pass_t rp = {
+        .target = desc.target,
+        .clear_color = desc.clear_color,
+        .load_op = desc.load_op,
+        .target_fb = framebuffer_create(),
     };
-    return buf;
+    return rp;
 }
 
-void cmd_buffer_begin(cmd_buffer_t* buffer) {
-    // Reset everything in the buffer except for the arena.
-    *buffer = (cmd_buffer_t) {
-        .arena = buffer->arena,
-    };
+void render_pass_destroy(render_pass_t pass) {
+    framebuffer_destroy(pass.target_fb);
 }
 
-void cmd_buffer_end(cmd_buffer_t* buffer) {
-    (void) buffer;
-    // NOTE: Is this really needed?
-}
-
-void cmd_buffer_submit(cmd_buffer_t* buffer) {
-    framebuffer_t target_fb = framebuffer_create();
-    framebuffer_bind(target_fb);
-
-    for (cmd_t *cmd = buffer->list.first; cmd != NULL; cmd = cmd->next) {
-        printf("CMD: %u\n", cmd->type);
-        cmd_data_t data = cmd->data;
-        switch (cmd->type) {
-            case CMD_TYPE_RENDER_PASS_BEGIN: {
-                render_pass_t rp = data.render_pass;
-                if (rp.target.handle == 0) {
-                    framebuffer_unbind();
-                } else {
-                    framebuffer_attach(target_fb, FRAMEBUFFER_ATTACHMENT_COLOR, 0, rp.target);
-                }
-                if (rp.load_op == LOAD_OP_CLEAR) {
-                    glClearColor(color_arg(rp.clear_color));
-                    glClear(GL_COLOR_BUFFER_BIT);
-                }
-            } break;
-            case CMD_TYPE_RENDER_PASS_END:
-                break;
-
-            case CMD_TYPE_BIND_PIPELINE: {
-                pipeline_t pipeline = data.pipeline;
-                buffer->current_pipeline = pipeline;
-                buffer->pipeline_bound = true;
-                glBindVertexArray(pipeline.vao_handle);
-                shader_use(pipeline.shader);
-            } break;
-            case CMD_TYPE_BIND_VERTEX_BUFFER: {
-                if (!buffer->pipeline_bound) {
-                    printf("ERROR: No pipeline bound before binding vertex buffer.\n");
-                    return;
-                }
-                vertex_buffer_t vb = data.vertex_buffer;
-                pipeline_t pipeline = buffer->current_pipeline;
-                vertex_buffer_bind(vb);
-                vertex_layout_t layout = pipeline.vertex_layout;
-                for (u32 i = 0; i < layout.attrib_count; i++) {
-                    u32 gl_type;
-                    switch (layout.attribs[i].type) {
-                        case VERTEX_ATTRIB_TYPE_F32:
-                            gl_type = GL_FLOAT;
-                            break;
-                    }
-                    glVertexAttribPointer(i,
-                            layout.attribs[i].count,
-                            gl_type,
-                            false,
-                            layout.stride,
-                            (const void*) (layout.attribs[i].offset * sizeof(u8)));
-                    glEnableVertexAttribArray(i);
-                }
-                buffer->vertex_buffer_bound = true;
-            } break;
-            case CMD_TYPE_BIND_INDEX_BUFFER: {
-                index_buffer_t ib = data.index_buffer;
-                buffer->index_buffer_bound = true;
-                buffer->current_index_buffer = ib;
-                index_buffer_bind(ib);
-            } break;
-
-            case CMD_TYPE_DRAW: {
-                if (!buffer->pipeline_bound) {
-                    printf("ERROR: No pipeline bound before drawing.\n");
-                    return;
-                }
-                if (!buffer->vertex_buffer_bound) {
-                    printf("ERROR: No vertex buffer bound before drawing.\n");
-                    return;
-                }
-                glDrawArrays(GL_TRIANGLES, data.draw.count, data.draw.first_offset);
-            } break;
-            case CMD_TYPE_DRAW_INDEXED: {
-                if (!buffer->pipeline_bound) {
-                    printf("ERROR: No pipeline bound before drawing indexed.\n");
-                    return;
-                }
-                if (!buffer->vertex_buffer_bound) {
-                    printf("ERROR: No vertex buffer bound before drawing indexed.\n");
-                    return;
-                }
-                if (!buffer->index_buffer_bound) {
-                    printf("ERROR: No index buffer bound before drawing indexed.\n");
-                    return;
-                }
-                glBindVertexArray(buffer->current_pipeline.vao_handle);
-                index_buffer_bind(buffer->current_index_buffer);
-                printf("pipeline vao handle: %u\n", buffer->current_pipeline.vao_handle);
-                glDrawElements(
-                        GL_TRIANGLES,
-                        data.draw.count,
-                        GL_UNSIGNED_INT,
-                        (const void*) (data.draw.first_offset * sizeof(u32)));
-            } break;
-        }
+void render_pass_begin(render_pass_t* pass) {
+    if (pass->target.handle != 0) {
+        framebuffer_bind(pass->target_fb);
+        framebuffer_attach(pass->target_fb, FRAMEBUFFER_ATTACHMENT_COLOR, 0, pass->target);
+    } else {
+        framebuffer_unbind();
     }
-
-    framebuffer_destroy(target_fb);
+    if (pass->load_op == LOAD_OP_CLEAR) {
+        glClearColor(color_arg(pass->clear_color));
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
 }
 
-#define cmd_buffer_push_cmd(BUFF, TYPE, ...) do { \
-    cmd_t* cmd = arena_push_type((BUFF)->arena, cmd_t); \
-    *cmd = (cmd_t) { \
-        .type = (TYPE), \
-        .data = {__VA_ARGS__}, \
-    }; \
-    if ((BUFF)->list.first == NULL) { \
-        (BUFF)->list.first = (BUFF)->list.last = cmd; \
-    } else { \
-        (BUFF)->list.last->next = cmd; \
-        cmd->prev = (BUFF)->list.last; \
-        (BUFF)->list.last = cmd; \
-    }\
-} while(0)
-
-void cmd_render_pass_begin(cmd_buffer_t* buffer, render_pass_t pass) {
-    cmd_buffer_push_cmd(buffer, CMD_TYPE_RENDER_PASS_BEGIN, .render_pass = pass);
+void render_pass_end(render_pass_t* pass) {
+    (void) pass;
 }
 
-void cmd_render_pass_end(cmd_buffer_t* buffer) {
-    cmd_buffer_push_cmd(buffer, CMD_TYPE_RENDER_PASS_BEGIN);
+void draw(u32 vertex_count, u32 first_vertex) {
+    glDrawArrays(GL_TRIANGLES, vertex_count, first_vertex);
 }
 
-void cmd_bind_pipeline(cmd_buffer_t* buffer, pipeline_t pipeline) {
-    cmd_buffer_push_cmd(buffer, CMD_TYPE_BIND_PIPELINE, .pipeline = pipeline);
-}
-
-void cmd_bind_vertex_buffer(cmd_buffer_t* buffer, vertex_buffer_t vertex_buffer) {
-    cmd_buffer_push_cmd(buffer, CMD_TYPE_BIND_VERTEX_BUFFER, .vertex_buffer = vertex_buffer);
-}
-
-void cmd_bind_index_buffer(cmd_buffer_t* buffer, index_buffer_t index_buffer) {
-    cmd_buffer_push_cmd(buffer, CMD_TYPE_BIND_INDEX_BUFFER, .index_buffer = index_buffer);
-}
-
-void cmd_draw(cmd_buffer_t* buffer, u32 vertex_count, u32 first_vertex) {
-    cmd_buffer_push_cmd(buffer, CMD_TYPE_DRAW, .draw = { .count = vertex_count, .first_offset = first_vertex });
-}
-
-void cmd_draw_indexed(cmd_buffer_t* buffer, u32 index_count, u32 first_index) {
-    cmd_buffer_push_cmd(buffer, CMD_TYPE_DRAW_INDEXED, .draw = { .count = index_count, .first_offset = first_index });
+void draw_indexed(u32 index_count, u32 first_index) {
+    glDrawElements(GL_TRIANGLES, index_count, GL_UNSIGNED_INT, (const void*) (first_index*sizeof(u32)));
 }
