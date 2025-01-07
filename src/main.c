@@ -138,22 +138,16 @@ state_t setup_state(void) {
     shader_t shader = shader_create(vert, frag);
 
     texture_t texture = texture_create((texture_desc_t) {
-            // Each row of pixels has to be aligned to a multiple of 4 so pad
-            // with 2 bytes on each row.
             .data = (u8[]) {
-                255, 0, 0,
-                0, 255, 0,
-                // Padding
-                0, 0,
-                0, 0, 255,
-                255, 0, 255,
-                // Padding
-                0, 0,
+                255, 0, 0, 128,
+                0, 255, 0, 128,
+                0, 0, 255, 128,
+                255, 0, 255, 128,
             },
             .width = 2,
             .height = 2,
             .sampler = TEXTURE_SAMPLER_NEAREST,
-            .format = TEXTURE_FORMAT_RGB_U8,
+            .format = TEXTURE_FORMAT_RGBA_U8,
         });
 
     vertex_layout_t layout = {
@@ -185,6 +179,15 @@ state_t setup_state(void) {
             .vertex_layout = layout,
             .shader = shader,
             .vertex_buffer = vbo,
+            .blend = {
+                .enabled = true,
+                .color_op = BLEND_OP_ADD,
+                .src_color_factor = BLEND_FACTOR_SRC_ALPHA,
+                .dst_color_factor = BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+                .alpha_op = BLEND_OP_ADD,
+                .src_alpha_factor = BLEND_FACTOR_ONE,
+                .dst_alpha_factor = BLEND_FACTOR_ZERO,
+            },
         });
 
     render_pass_t pass = render_pass_create((render_pass_desc_t) {
@@ -242,6 +245,10 @@ i32 main(void) {
 
     const u8 *version = glGetString(GL_VERSION);
     printf("%s\n", version);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquation(GL_FUNC_ADD);
 
     state_t state = setup_state();
     rend->user_ptr = &state;

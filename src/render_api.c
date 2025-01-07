@@ -383,9 +383,7 @@ extern void framebuffer_attach(framebuffer_t fb,
 
 pipeline_t pipeline_create(pipeline_desc_t desc) {
     pipeline_t pipeline = {
-        .shader = desc.shader,
-        .vertex_layout = desc.vertex_layout,
-        .vertex_buffer = desc.vertex_buffer,
+        .desc = desc,
     };
     glGenVertexArrays(1, &pipeline.vao_handle);
     glBindVertexArray(pipeline.vao_handle);
@@ -415,9 +413,53 @@ void pipeline_destroy(pipeline_t pipeline) {
     glDeleteVertexArrays(1, &pipeline.vao_handle);
 }
 
+static GLenum blend_op_to_gl(blend_op_t op) {
+    switch (op) {
+        case BLEND_OP_ADD:
+            return GL_FUNC_ADD;
+        case BLEND_OP_SUB:
+            return GL_FUNC_SUBTRACT;
+    }
+}
+
+static GLenum blend_factor_to_gl(blend_factor_t factor) {
+    switch (factor) {
+        case BLEND_FACTOR_ZERO:
+            return GL_ZERO;
+        case BLEND_FACTOR_ONE:
+            return GL_ONE;
+        case BLEND_FACTOR_SRC_ALPHA:
+            return GL_SRC_ALPHA;
+        case BLEND_FACTOR_DST_ALPHA:
+            return GL_DST_ALPHA;
+        case BLEND_FACTOR_ONE_MINUS_SRC_ALPHA:
+            return GL_ONE_MINUS_SRC_ALPHA;
+        case BLEND_FACTOR_ONE_MINUS_DST_ALPHA:
+            return GL_ONE_MINUS_DST_ALPHA;
+    }
+}
+
 void pipeline_bind(pipeline_t pipeline) {
-    shader_use(pipeline.shader);
+    shader_use(pipeline.desc.shader);
     glBindVertexArray(pipeline.vao_handle);
+
+    blend_state_t blend = pipeline.desc.blend;
+    if (blend.enabled) {
+        glEnable(GL_BLEND);
+
+        GLenum gl_color_func = blend_op_to_gl(blend.color_op);
+        GLenum gl_alpha_func = blend_op_to_gl(blend.alpha_op);
+        glBlendEquationSeparate(gl_color_func, gl_alpha_func);
+
+        GLenum gl_src_color_factor = blend_factor_to_gl(blend.src_color_factor);
+        GLenum gl_dst_color_factor = blend_factor_to_gl(blend.dst_color_factor);
+        GLenum gl_src_alpha_factor = blend_factor_to_gl(blend.src_alpha_factor);
+        GLenum gl_dst_alpha_factor = blend_factor_to_gl(blend.dst_alpha_factor);
+        glBlendFuncSeparate(gl_src_color_factor, gl_dst_color_factor,
+                gl_src_alpha_factor, gl_dst_alpha_factor);
+    } else {
+        glDisable(GL_BLEND);
+    }
 }
 
 // -- Render pass -----------------------------------------------------------

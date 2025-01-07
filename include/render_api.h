@@ -164,12 +164,29 @@ struct vertex_layout_t {
     u32 attrib_count;
 };
 
-typedef struct pipeline_t pipeline_t;
-struct pipeline_t {
-    shader_t shader;
-    vertex_layout_t vertex_layout;
-    u32 vao_handle;
-    vertex_buffer_t vertex_buffer;
+typedef enum blend_op_t {
+    BLEND_OP_ADD,
+    BLEND_OP_SUB,
+} blend_op_t;
+
+typedef enum blend_factor_t {
+    BLEND_FACTOR_ZERO,
+    BLEND_FACTOR_ONE,
+    BLEND_FACTOR_SRC_ALPHA,
+    BLEND_FACTOR_DST_ALPHA,
+    BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+    BLEND_FACTOR_ONE_MINUS_DST_ALPHA,
+} blend_factor_t;
+
+typedef struct blend_state_t blend_state_t;
+struct blend_state_t {
+    b8 enabled;
+    blend_op_t color_op;
+    blend_factor_t src_color_factor;
+    blend_factor_t dst_color_factor;
+    blend_op_t alpha_op;
+    blend_factor_t src_alpha_factor;
+    blend_factor_t dst_alpha_factor;
 };
 
 typedef struct pipeline_desc_t pipeline_desc_t;
@@ -177,6 +194,13 @@ struct pipeline_desc_t {
     shader_t shader;
     vertex_layout_t vertex_layout;
     vertex_buffer_t vertex_buffer;
+    blend_state_t blend;
+};
+
+typedef struct pipeline_t pipeline_t;
+struct pipeline_t {
+    pipeline_desc_t desc;
+    u32 vao_handle;
 };
 
 extern pipeline_t pipeline_create(pipeline_desc_t desc);
