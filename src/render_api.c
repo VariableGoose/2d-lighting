@@ -420,6 +420,8 @@ static GLenum blend_op_to_gl(blend_op_t op) {
         case BLEND_OP_SUB:
             return GL_FUNC_SUBTRACT;
     }
+
+    return GL_INVALID_ENUM;
 }
 
 static GLenum blend_factor_to_gl(blend_factor_t factor) {
@@ -437,6 +439,8 @@ static GLenum blend_factor_to_gl(blend_factor_t factor) {
         case BLEND_FACTOR_ONE_MINUS_DST_ALPHA:
             return GL_ONE_MINUS_DST_ALPHA;
     }
+
+    return GL_INVALID_ENUM;
 }
 
 void pipeline_bind(pipeline_t pipeline) {

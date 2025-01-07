@@ -3,6 +3,7 @@
 //
 
 #ifndef RENDER_API_H
+#define RENDER_API_H
 
 #include "core.h"
 
@@ -235,6 +236,8 @@ extern void render_pass_destroy(render_pass_t pass);
 
 extern void render_pass_begin(render_pass_t* pass);
 extern void render_pass_end(render_pass_t* pass);
+#define RENDER_PASS(PASS) \
+    for (b8 _i_ = (render_pass_begin(PASS), false); !_i_; _i_ = true, render_pass_end(PASS))
 
 extern void draw(u32 vertex_count, u32 first_vertex);
 extern void draw_indexed(u32 index_count, u32 first_index);
