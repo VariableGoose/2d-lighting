@@ -82,6 +82,8 @@ struct texture_t {
 };
 
 typedef enum texture_format_t {
+    // Each pixel row needs to be a multiple of 4 so a 2x2 RGB_U8 texture needs
+    // to pad each row of 6 pixels with 2 extra bytes.
     TEXTURE_FORMAT_R_U8 = 1,
     TEXTURE_FORMAT_RG_U8,
     TEXTURE_FORMAT_RGB_U8,

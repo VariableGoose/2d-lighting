@@ -1,10 +1,3 @@
-// TODO:
-// - A huge mistake has been made. Just make the damn renderer man. Screw the
-// Vulkan stuff. Just make it how you want it.
-// TL;DR refactor everything to work how you want it.
-// - Render passes
-// - Fix texture formats
-
 #include "core.h"
 #include "program.h"
 #include "render_api.h"
@@ -49,9 +42,6 @@ quad_t quad_setup(void) {
 
     vertex_buffer_t vbo = vertex_buffer_create(verts, sizeof(verts), BUFFER_USAGE_STATIC);
     index_buffer_t ibo = index_buffer_create(indices, arr_len(indices), BUFFER_USAGE_STATIC);
-
-    // Bind vbo to vao
-    vertex_buffer_bind(vbo);
 
     str_t vert = str_read_file(arena, str_lit("assets/shaders/screen_quad.vert.glsl"));
     str_t frag = str_read_file(arena, str_lit("assets/shaders/screen_quad.frag.glsl"));
@@ -108,7 +98,6 @@ struct state_t {
     texture_t screen_texture;
     framebuffer_t fb;
 
-    u32 vao;
     vertex_buffer_t vbo;
     index_buffer_t ibo;
     texture_t texture;
@@ -125,7 +114,7 @@ state_t setup_state(void) {
             .width = 800,
             .height = 600,
             .format = TEXTURE_FORMAT_RGBA_U8,
-            .sampler = TEXTURE_SAMPLER_LINEAR,
+            .sampler = TEXTURE_SAMPLER_NEAREST,
         });
     framebuffer_t fb = framebuffer_create();
     framebuffer_attach(fb, FRAMEBUFFER_ATTACHMENT_COLOR, 0, screen_texture);
@@ -144,41 +133,27 @@ state_t setup_state(void) {
     vertex_buffer_t vbo = vertex_buffer_create(verts, sizeof(verts), BUFFER_USAGE_STATIC);
     index_buffer_t ibo = index_buffer_create(indices, arr_len(indices), BUFFER_USAGE_STATIC);
 
-    u32 vao = 0;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    // Bind vbo to vao
-    vertex_buffer_bind(vbo);
-
-    // Vertex layout
-    // Position
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(vertex_t), (const void*) offset(vertex_t, pos));
-    glEnableVertexAttribArray(0);
-    // Color
-    glVertexAttribPointer(1, 4, GL_FLOAT, false, sizeof(vertex_t), (const void*) offset(vertex_t, color));
-    glEnableVertexAttribArray(1);
-    // UV
-    glVertexAttribPointer(2, 2, GL_FLOAT, false, sizeof(vertex_t), (const void*) offset(vertex_t, uv));
-    glEnableVertexAttribArray(2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
     str_t vert = str_read_file(arena, str_lit("assets/shaders/vert.glsl"));
     str_t frag = str_read_file(arena, str_lit("assets/shaders/frag.glsl"));
     shader_t shader = shader_create(vert, frag);
 
     texture_t texture = texture_create((texture_desc_t) {
+            // Each row of pixels has to be aligned to a multiple of 4 so pad
+            // with 2 bytes on each row.
             .data = (u8[]) {
-                255, 0, 0, 255,
-                0, 255, 0, 255,
-                0, 0, 255, 255,
-                255, 0, 255, 255,
+                255, 0, 0,
+                0, 255, 0,
+                // Padding
+                0, 0,
+                0, 0, 255,
+                255, 0, 255,
+                // Padding
+                0, 0,
             },
             .width = 2,
             .height = 2,
             .sampler = TEXTURE_SAMPLER_NEAREST,
-            .format = TEXTURE_FORMAT_RGBA_U8,
+            .format = TEXTURE_FORMAT_RGB_U8,
         });
 
     vertex_layout_t layout = {
@@ -222,7 +197,6 @@ state_t setup_state(void) {
         .fb = fb,
         .screen_texture = screen_texture,
 
-        .vao = vao,
         .vbo = vbo,
         .ibo = ibo,
         .texture = texture,
