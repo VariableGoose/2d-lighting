@@ -37,6 +37,7 @@ extern color_t color_hsv(f32 hue, f32 saturation, f32 value);
 #define COLOR_RED ((color_t) {1.0f, 0.0f, 0.0f, 1.0f})
 #define COLOR_GREEN ((color_t) {0.0f, 1.0f, 0.0f, 1.0f})
 #define COLOR_BLUE ((color_t) {0.0f, 0.0f, 1.0f, 1.0f})
+#define COLOR_TRANSPARENT ((color_t) {0.0f, 0.0f, 0.0f, 0.0f})
 
 // -- Vertex buffer ------------------------------------------------------------
 
@@ -77,6 +78,8 @@ extern void shader_use(shader_t shader);
 
 extern void shader_uniform_vec4(shader_t shader, const char* name, Vec4 value);
 extern void shader_uniform_mat4(shader_t shader, const char* name, Mat4 value);
+extern void shader_uniform_f32(shader_t shader, const char* name, f32 value);
+extern void shader_uniform_i32(shader_t shader, const char* name, i32 value);
 
 // -- Texture ------------------------------------------------------------------
 

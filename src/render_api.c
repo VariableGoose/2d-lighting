@@ -225,6 +225,16 @@ void shader_uniform_mat4(shader_t shader, const char* name, Mat4 value) {
     glUniformMatrix4fv(loc, 1, false, &value.a.x);
 }
 
+void shader_uniform_f32(shader_t shader, const char* name, f32 value) {
+    u32 loc = glGetUniformLocation(shader.handle, name);
+    glUniform1f(loc, value);
+}
+
+void shader_uniform_i32(shader_t shader, const char* name, i32 value) {
+    u32 loc = glGetUniformLocation(shader.handle, name);
+    glUniform1i(loc, value);
+}
+
 // -- Texture ------------------------------------------------------------------
 
 texture_t texture_create(texture_desc_t desc) {

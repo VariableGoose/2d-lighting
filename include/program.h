@@ -41,10 +41,16 @@ struct app_t {
 
     Quad quad;
     shader_t obj_shader;
+    shader_t light_shader;
+    shader_t screen_shader;
     texture_t white_texture;
 
     texture_t obj_render_target;
     render_pass_t obj_pass;
+
+    texture_t light_render_target;
+    render_pass_t light_pass;
+
     render_pass_t screen_pass;
 };
 
