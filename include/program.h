@@ -43,6 +43,13 @@ struct post_processing_t {
     struct {
         shader_t shader;
     } color_correction;
+    struct {
+        texture_t* textures;
+        render_pass_t* passes;
+        u32 texture_count;
+        shader_t shader_downsample;
+        shader_t shader_upsample;
+    } bloom;
 };
 
 typedef struct app_t app_t;

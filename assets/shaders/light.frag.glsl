@@ -21,5 +21,5 @@ void main() {
     vec3 norm_color = color.rgb / max(length(color.rgb), 0.001);
     vec3 light_color = norm_color * attenuation;
 
-    frag_color = vec4(light_color, 1.0);
+    frag_color = vec4(light_color, attenuation);
 }

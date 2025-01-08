@@ -45,6 +45,7 @@ extern void arena_pop(arena_t* arena, u32 size);
 extern void arena_clear(arena_t* arena);
 
 #define arena_push_type(ARENA, T) arena_push((ARENA), sizeof(T))
+#define arena_push_array(ARENA, T, COUNT) arena_push((ARENA), sizeof(T)*(COUNT))
 
 // -- String -------------------------------------------------------------------
 // Length based strings.

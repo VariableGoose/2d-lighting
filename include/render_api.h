@@ -86,6 +86,7 @@ extern void shader_uniform_i32(shader_t shader, const char* name, i32 value);
 typedef struct texture_t texture_t;
 struct texture_t {
     u32 handle;
+    Ivec2 size;
 };
 
 typedef enum texture_format_t {

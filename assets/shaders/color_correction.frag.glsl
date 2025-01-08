@@ -8,10 +8,11 @@ out vec4 frag_color;
 
 in vec2 f_uv;
 
-uniform sampler2D screen;
+uniform sampler2D scene;
+uniform sampler2D bloom;
 
 void main() {
-    vec3 hdr_color = texture(screen, f_uv).rgb;
+    vec3 hdr_color = texture(scene, f_uv).rgb;
 
     // Exposure tone mapping
     const float exposure = 1.0;
@@ -20,5 +21,5 @@ void main() {
     const float gamma = 2.2;
     mapped = pow(mapped, vec3(1.0 / gamma));
 
-    frag_color = vec4(mapped, 1.0);
+    frag_color = vec4(mapped + texture(bloom, f_uv).rgb, 1.0);
 }

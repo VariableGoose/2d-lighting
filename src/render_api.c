@@ -324,7 +324,9 @@ texture_t texture_create(texture_desc_t desc) {
             break;
     }
 
-    texture_t tex = {0};
+    texture_t tex = {
+        .size = ivec2(desc.width, desc.height),
+    };
     glGenTextures(1, &tex.handle);
     glBindTexture(GL_TEXTURE_2D, tex.handle);
 

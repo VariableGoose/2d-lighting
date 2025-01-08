@@ -1,11 +1,21 @@
+#include <glad/gl.h>
 #include "core.h"
 #include "program.h"
 #include "render_api.h"
+#include <stdio.h>
 
 typedef struct vert_t vert_t;
 struct vert_t {
     Vec2 pos;
     Vec2 uv;
+};
+
+typedef struct light_t light_t;
+struct light_t {
+    Vec3 pos;
+    Vec3 size;
+    float intensity;
+    color_t color;
 };
 
 static Quad quad_init(void) {
@@ -67,6 +77,36 @@ static void draw_quad(Quad quad) {
 
 static post_processing_t post_processing_init(arena_t* arena, str_t vert) {
     str_t color_correction_frag = str_read_file(arena, str_lit("assets/shaders/color_correction.frag.glsl"));
+    str_t bloom_downsample_sample_frag = str_read_file(arena, str_lit("assets/shaders/bloom_downsample.frag.glsl"));
+    str_t bloom_upsample_sample_frag = str_read_file(arena, str_lit("assets/shaders/bloom_upsample.frag.glsl"));
+
+    u32 texture_count = 0;
+    Ivec2 screen_size = ivec2(800, 600);
+    while (screen_size.y >= 2) {
+        texture_count++;
+        screen_size = ivec2_divs(screen_size, 2);
+    }
+    printf("Needed bloom textures: %d\n", texture_count);
+
+    texture_t* textures = arena_push_array(arena, texture_t, texture_count);
+    render_pass_t* passes = arena_push_array(arena, render_pass_t, texture_count);
+    screen_size = ivec2(800, 600);
+    for (u32 i = 0; i < texture_count; i++) {
+        textures[i] = texture_create((texture_desc_t) {
+                .sampler = TEXTURE_SAMPLER_LINEAR,
+                .format = TEXTURE_FORMAT_RGB_F16,
+                .width = screen_size.x,
+                .height = screen_size.y,
+            });
+        passes[i] = render_pass_create((render_pass_desc_t) {
+                .targets = {textures[i]},
+                .target_count = 1,
+                .load_op = LOAD_OP_LOAD,
+            });
+
+        screen_size = ivec2_divs(screen_size, 2);
+    }
+
 
     return (post_processing_t) {
         .pass = render_pass_create((render_pass_desc_t) {
@@ -75,6 +115,13 @@ static post_processing_t post_processing_init(arena_t* arena, str_t vert) {
             }),
         .color_correction = {
             .shader = shader_create(vert, color_correction_frag),
+        },
+        .bloom = {
+            .texture_count = texture_count,
+            .textures = textures,
+            .passes = passes,
+            .shader_downsample = shader_create(vert, bloom_downsample_sample_frag),
+            .shader_upsample = shader_create(vert, bloom_upsample_sample_frag),
         },
     };
 }
@@ -100,7 +147,7 @@ app_t* app_init(void) {
             .data = NULL,
             .width = 800,
             .height = 600,
-            .format = TEXTURE_FORMAT_RGBA_U8,
+            .format = TEXTURE_FORMAT_RGBA_F16,
             .sampler = TEXTURE_SAMPLER_LINEAR,
         });
 
@@ -108,7 +155,7 @@ app_t* app_init(void) {
             .data = NULL,
             .width = 800,
             .height = 600,
-            .format = TEXTURE_FORMAT_RGBA_F32,
+            .format = TEXTURE_FORMAT_RGBA_F16,
             .sampler = TEXTURE_SAMPLER_LINEAR,
         });
 
@@ -116,7 +163,7 @@ app_t* app_init(void) {
             .data = NULL,
             .width = 800,
             .height = 600,
-            .format = TEXTURE_FORMAT_RGBA_F32,
+            .format = TEXTURE_FORMAT_RGBA_F16,
             .sampler = TEXTURE_SAMPLER_LINEAR,
         });
 
@@ -124,7 +171,7 @@ app_t* app_init(void) {
             .data = NULL,
             .width = 800,
             .height = 600,
-            .format = TEXTURE_FORMAT_RGBA_F32,
+            .format = TEXTURE_FORMAT_RGBA_F16,
             .sampler = TEXTURE_SAMPLER_LINEAR,
         });
 
@@ -226,7 +273,7 @@ void app_update(app_t* app) {
 
             texture_bind(app->white_texture, 0);
             shader_use(app->obj_shader);
-            color_t color = color_rgb_hex(0xff1010);
+            color_t color = color_rgb_f(1.0f, 0.2f, 0.2f);
             Vec4 v4_color = *(Vec4 *) &color;
             shader_uniform_vec4(app->obj_shader, "color", v4_color);
             shader_uniform_mat4(app->obj_shader, "proj", proj);
@@ -237,26 +284,50 @@ void app_update(app_t* app) {
     }
 
     // Light pass
+    f32 circle_radius = 4.0f;
+    light_t lights[2] = {
+        [0] = {
+            .pos = vec3(
+                    cosf(get_time() * 2.0f + PI) * circle_radius,
+                    sinf(get_time() * 2.0f + PI) * circle_radius,
+                    0.0f
+                ),
+            .size = vec3(circle_radius * 2.0f, circle_radius * 2.0f, 1.0f),
+            .color = color_rgb_hex(0x80ff33),
+            .intensity = 3.0f,
+        },
+        [1] = {
+            .pos = vec3(
+                    cosf(get_time() * 2.0f) * circle_radius,
+                    sinf(get_time() * 2.0f) * circle_radius,
+                    0.0f
+                ),
+            .size = vec3(circle_radius * 2.0f, circle_radius * 2.0f, 1.0f),
+            .color = color_rgb_hex(0xff8033),
+            .intensity = 3.0f,
+        },
+    };
     RENDER_PASS(&app->light_pass) {
-        Mat4 transform = MAT4_IDENTITY;
-        f32 circle_radius = 2.0f;
-        Vec3 pos = vec3(cosf(get_time() * 2.0f) * circle_radius, sinf(get_time() * 2.0f) * circle_radius, 0.0f);
-        transform = mat4_translate(transform, pos);
-        transform = mat4_scale(transform, vec3(5.0f, 5.0f, 1.0f));
+        for (u32 i = 0; i < arr_len(lights); i++) {
+            light_t light = lights[i];
 
-        texture_bind(app->white_texture, 0);
-        shader_use(app->light_shader);
-        // Vert
-        shader_uniform_mat4(app->light_shader, "proj", proj);
-        shader_uniform_mat4(app->light_shader, "transform", transform);
-        // Frag
-        color_t color = color_rgb_hex(0xff8033);
-        Vec4 v4_color = *(Vec4 *) &color;
-        shader_uniform_vec4(app->light_shader, "color", v4_color);
+            Mat4 transform = MAT4_IDENTITY;
+            transform = mat4_translate(transform, light.pos);
+            transform = mat4_scale(transform, light.size);
 
-        shader_uniform_f32(app->light_shader, "intensity", 1.0f);
+            texture_bind(app->white_texture, 0);
+            shader_use(app->light_shader);
+            // Vert
+            shader_uniform_mat4(app->light_shader, "proj", proj);
+            shader_uniform_mat4(app->light_shader, "transform", transform);
+            // Frag
+            Vec4 v4_color = *(Vec4 *) &light.color;
+            shader_uniform_vec4(app->light_shader, "color", v4_color);
 
-        draw_quad(app->quad);
+            shader_uniform_f32(app->light_shader, "intensity", light.intensity);
+
+            draw_quad(app->quad);
+        }
     }
 
     // Composition pass
@@ -273,7 +344,7 @@ void app_update(app_t* app) {
         // Frag
         shader_uniform_i32(app->screen_shader, "obj", 0);
         shader_uniform_i32(app->screen_shader, "light", 1);
-        shader_uniform_vec4(app->screen_shader, "ambient_color", vec4s(0.1f));
+        shader_uniform_vec4(app->screen_shader, "ambient_color", vec4s(1.0f));
 
         draw_quad(app->quad);
     }
@@ -282,16 +353,73 @@ void app_update(app_t* app) {
     // -- Post processing ------------------------------------------------------
     //
 
+    // Bloom
+    // https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/
+    glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Bloom");
+    // Downsample
+    glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Downsample");
+    post_processing_t pp = app->pp;
+    texture_t src_texture = app->bloom_map_render_target;
+    for (u32 i = 0; i < pp.bloom.texture_count; i++) {
+        glViewport(0, 0, vec2_arg(pp.bloom.textures[i].size));
+        RENDER_PASS(&pp.bloom.passes[i]) {
+            Mat4 transform = MAT4_IDENTITY;
+            transform = mat4_scale(transform, vec3(2.0f, 2.0f, 1.0f));
+
+            texture_bind(src_texture, 0);
+            shader_use(pp.bloom.shader_downsample);
+            // Vert
+            shader_uniform_mat4(pp.bloom.shader_downsample, "proj", MAT4_IDENTITY);
+            shader_uniform_mat4(pp.bloom.shader_downsample, "transform", transform);
+
+            draw_quad(app->quad);
+            src_texture = pp.bloom.textures[i];
+        }
+    }
+    glPopDebugGroup();
+    glViewport(0, 0, 800, 600);
+
+    // Upsample
+    glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Upsample");
+    src_texture = pp.bloom.textures[pp.bloom.texture_count - 1];
+    for (i32 i = pp.bloom.texture_count - 2; i >= 0; i--) {
+        texture_t curr_texture = pp.bloom.textures[i];
+        glViewport(0, 0, vec2_arg(curr_texture.size));
+        RENDER_PASS(&pp.bloom.passes[i]) {
+            Mat4 transform = MAT4_IDENTITY;
+            transform = mat4_scale(transform, vec3(2.0f, 2.0f, 1.0f));
+
+            texture_bind(src_texture, 0);
+            texture_bind(curr_texture, 1);
+            shader_use(pp.bloom.shader_upsample);
+            // Vert
+            shader_uniform_mat4(pp.bloom.shader_upsample, "proj", MAT4_IDENTITY);
+            shader_uniform_mat4(pp.bloom.shader_upsample, "transform", transform);
+            // Frag
+            shader_uniform_i32(pp.bloom.shader_upsample, "src_texture", 0);
+            shader_uniform_i32(pp.bloom.shader_upsample, "curr_texture", 1);
+
+            draw_quad(app->quad);
+            src_texture = pp.bloom.textures[i + 1];
+        }
+    }
+    glPopDebugGroup();
+    glPopDebugGroup();
+
     // Color correction pass
-    RENDER_PASS(&app->pp.pass) {
+    RENDER_PASS(&pp.pass) {
         Mat4 transform = MAT4_IDENTITY;
         transform = mat4_scale(transform, vec3(2.0f, 2.0f, 1.0f));
 
         texture_bind(app->comp_render_target, 0);
-        shader_use(app->pp.color_correction.shader);
+        texture_bind(pp.bloom.textures[0], 1);
+        shader_use(pp.color_correction.shader);
         // Vert
-        shader_uniform_mat4(app->pp.color_correction.shader, "proj", MAT4_IDENTITY);
-        shader_uniform_mat4(app->pp.color_correction.shader, "transform", transform);
+        shader_uniform_mat4(pp.color_correction.shader, "proj", MAT4_IDENTITY);
+        shader_uniform_mat4(pp.color_correction.shader, "transform", transform);
+        // Frag
+        shader_uniform_i32(pp.color_correction.shader, "scene", 0);
+        shader_uniform_i32(pp.color_correction.shader, "bloom", 1);
 
         draw_quad(app->quad);
     }
