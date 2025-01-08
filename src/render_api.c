@@ -239,6 +239,25 @@ void shader_uniform_i32(shader_t shader, const char* name, i32 value) {
 // -- Texture ------------------------------------------------------------------
 
 texture_t texture_create(texture_desc_t desc) {
+    texture_t tex = {0};
+    glGenTextures(1, &tex.handle);
+    texture_resize(&tex, desc);
+    return tex;
+}
+
+void texture_destroy(texture_t texture) {
+    glDeleteTextures(1, &texture.handle);
+}
+
+void texture_bind(texture_t texture, u32 slot) {
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_2D, texture.handle);
+}
+
+void texture_resize(texture_t* texture, texture_desc_t desc) {
+    texture->size.x = desc.width;
+    texture->size.y = desc.height;
+
     u32 gl_internal_format;
     u32 gl_format;
     switch (desc.format) {
@@ -328,11 +347,7 @@ texture_t texture_create(texture_desc_t desc) {
             break;
     }
 
-    texture_t tex = {
-        .size = ivec2(desc.width, desc.height),
-    };
-    glGenTextures(1, &tex.handle);
-    glBindTexture(GL_TEXTURE_2D, tex.handle);
+    glBindTexture(GL_TEXTURE_2D, texture->handle);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_sampler);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_sampler);
@@ -351,16 +366,6 @@ texture_t texture_create(texture_desc_t desc) {
             desc.data);
 
     glBindTexture(GL_TEXTURE_2D, 0);
-    return tex;
-}
-
-void texture_destroy(texture_t texture) {
-    glDeleteTextures(1, &texture.handle);
-}
-
-void texture_bind(texture_t texture, u32 slot) {
-    glActiveTexture(GL_TEXTURE0 + slot);
-    glBindTexture(GL_TEXTURE_2D, texture.handle);
 }
 
 // -- Framebuffer --------------------------------------------------------------

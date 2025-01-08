@@ -53,12 +53,14 @@ struct post_processing_t {
         shader_t upsample_shader;
 
         u32 pass_count;
+        u32 max_pass_count;
     } bloom;
 };
 
 typedef struct app_t app_t;
 struct app_t {
     arena_t* arena;
+    Ivec2 size;
 
     Quad quad;
     shader_t obj_shader;
@@ -83,6 +85,7 @@ struct app_t {
 
 extern app_t* app_init(void);
 extern void app_shutdown(app_t* app);
+extern void app_resize(app_t* app, Ivec2 size);
 extern void app_update(app_t* app);
 
 #endif // PROGRAM_H

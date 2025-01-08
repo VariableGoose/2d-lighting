@@ -36,7 +36,7 @@ renderer_t* renderer_new(u32 width, u32 height, const char *title)  {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, false);
+    glfwWindowHint(GLFW_RESIZABLE, true);
     dt->window = glfwCreateWindow(width, height, title, NULL, NULL);
     glfwMakeContextCurrent(dt->window);
     glfwSetWindowUserPointer(dt->window, rend);

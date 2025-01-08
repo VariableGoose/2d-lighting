@@ -125,6 +125,8 @@ struct texture_desc_t {
 extern texture_t texture_create(texture_desc_t desc);
 extern void texture_destroy(texture_t texture);
 extern void texture_bind(texture_t texture, u32 slot);
+// Horrible name but idk what else to name it.
+extern void texture_resize(texture_t* texture, texture_desc_t desc);
 
 // -- Framebuffer --------------------------------------------------------------
 // Holds the target textures for a render pass.

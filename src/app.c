@@ -97,32 +97,21 @@ static post_processing_t post_processing_init(arena_t* arena, str_t vert) {
     str_t bloom_downsample_sample_frag = str_read_file(arena, str_lit("assets/shaders/bloom_downsample.frag.glsl"));
     str_t bloom_upsample_sample_frag = str_read_file(arena, str_lit("assets/shaders/bloom_upsample.frag.glsl"));
 
-    u32 pass_count = 0;
-    Ivec2 screen_size = ivec2(800, 600);
-    while (screen_size.y >= 2) {
-        pass_count++;
-        screen_size = ivec2_divs(screen_size, 2);
-    }
-    printf("Needed bloom textures: %d\n", pass_count);
+    const u32 max_pass_count = 16;
 
-    texture_t* downsample_textures = arena_push_array(arena, texture_t, pass_count);
-    texture_t* upsample_textures = arena_push_array(arena, texture_t, pass_count);
-    render_pass_t* downsample_passes = arena_push_array(arena, render_pass_t, pass_count);
-    render_pass_t* upsample_passes = arena_push_array(arena, render_pass_t, pass_count);
-    screen_size = ivec2(800, 600);
-    for (u32 i = 0; i < pass_count; i++) {
-        downsample_textures[i] = texture_create((texture_desc_t) {
-                .sampler = TEXTURE_SAMPLER_LINEAR,
-                .format = TEXTURE_FORMAT_RGBA_F16,
-                .width = screen_size.x,
-                .height = screen_size.y,
-            });
-        upsample_textures[i] = texture_create((texture_desc_t) {
-                .sampler = TEXTURE_SAMPLER_LINEAR,
-                .format = TEXTURE_FORMAT_RGBA_F16,
-                .width = screen_size.x,
-                .height = screen_size.y,
-            });
+    texture_t* downsample_textures = arena_push_array(arena, texture_t, max_pass_count);
+    texture_t* upsample_textures = arena_push_array(arena, texture_t, max_pass_count);
+    render_pass_t* downsample_passes = arena_push_array(arena, render_pass_t, max_pass_count);
+    render_pass_t* upsample_passes = arena_push_array(arena, render_pass_t, max_pass_count);
+    for (u32 i = 0; i < max_pass_count; i++) {
+        texture_desc_t desc = {
+            .sampler = TEXTURE_SAMPLER_LINEAR,
+            .format = TEXTURE_FORMAT_RGBA_F16,
+            .width = 1,
+            .height = 1,
+        };
+        downsample_textures[i] = texture_create(desc);
+        upsample_textures[i] = texture_create(desc);
         downsample_passes[i] = render_pass_create((render_pass_desc_t) {
                 .targets = {downsample_textures[i]},
                 .target_count = 1,
@@ -133,10 +122,7 @@ static post_processing_t post_processing_init(arena_t* arena, str_t vert) {
                 .target_count = 1,
                 .load_op = LOAD_OP_LOAD,
             });
-
-        screen_size = ivec2_divs(screen_size, 2);
     }
-
 
     return (post_processing_t) {
         .pass = render_pass_create((render_pass_desc_t) {
@@ -155,9 +141,45 @@ static post_processing_t post_processing_init(arena_t* arena, str_t vert) {
             .upsample_passes = upsample_passes,
             .upsample_shader = shader_create(vert, bloom_upsample_sample_frag),
 
-            .pass_count = pass_count,
+            .max_pass_count = max_pass_count,
         },
     };
+}
+
+static void resize_screen_textures(app_t* app) {
+    texture_desc_t desc = {
+        .data = NULL,
+        .width = app->size.x,
+        .height = app->size.y,
+        .format = TEXTURE_FORMAT_RGBA_F16,
+        .sampler = TEXTURE_SAMPLER_LINEAR,
+    };
+
+    texture_resize(&app->obj_render_target, desc);
+    texture_resize(&app->light_render_target, desc);
+    texture_resize(&app->comp_render_target, desc);
+    texture_resize(&app->bloom_map_render_target, desc);
+
+    // Bloom textures
+    Ivec2 size = app->size;
+    u32 pass_count = 0;
+    for (u32 i = 0; i < app->pp.bloom.max_pass_count; i++) {
+        texture_desc_t desc = {
+            .sampler = TEXTURE_SAMPLER_LINEAR,
+            .format = TEXTURE_FORMAT_RGBA_F16,
+            .width = size.x,
+            .height = size.y,
+        };
+        texture_resize(&app->pp.bloom.downsample_textures[i], desc);
+        texture_resize(&app->pp.bloom.upsample_textures[i], desc);
+        pass_count++;
+
+        if (size.x <= 2 || size.y <= 2) {
+            break;
+        }
+        size = ivec2_divs(size, 2);
+    }
+    app->pp.bloom.pass_count = pass_count;
 }
 
 app_t* app_init(void) {
@@ -177,37 +199,18 @@ app_t* app_init(void) {
             .sampler = TEXTURE_SAMPLER_LINEAR,
         });
 
-    texture_t obj_render_target = texture_create((texture_desc_t) {
-            .data = NULL,
-            .width = 800,
-            .height = 600,
-            .format = TEXTURE_FORMAT_RGBA_F16,
-            .sampler = TEXTURE_SAMPLER_LINEAR,
-        });
+    texture_desc_t desc = {
+        .data = NULL,
+        .width = 800,
+        .height = 600,
+        .format = TEXTURE_FORMAT_RGBA_F16,
+        .sampler = TEXTURE_SAMPLER_LINEAR,
+    };
 
-    texture_t light_render_target = texture_create((texture_desc_t) {
-            .data = NULL,
-            .width = 800,
-            .height = 600,
-            .format = TEXTURE_FORMAT_RGBA_F16,
-            .sampler = TEXTURE_SAMPLER_LINEAR,
-        });
-
-    texture_t comp_render_target = texture_create((texture_desc_t) {
-            .data = NULL,
-            .width = 800,
-            .height = 600,
-            .format = TEXTURE_FORMAT_RGBA_F16,
-            .sampler = TEXTURE_SAMPLER_LINEAR,
-        });
-
-    texture_t bloom_map_render_target = texture_create((texture_desc_t) {
-            .data = NULL,
-            .width = 800,
-            .height = 600,
-            .format = TEXTURE_FORMAT_RGBA_F16,
-            .sampler = TEXTURE_SAMPLER_LINEAR,
-        });
+    texture_t obj_render_target = texture_create(desc);
+    texture_t light_render_target = texture_create(desc);
+    texture_t comp_render_target = texture_create(desc);
+    texture_t bloom_map_render_target = texture_create(desc);
 
     *app = (app_t) {
         .arena = arena,
@@ -261,12 +264,18 @@ void app_shutdown(app_t* app) {
     arena_free(app->arena);
 }
 
+void app_resize(app_t* app, Ivec2 size) {
+    app->size = size;
+    resize_screen_textures(app);
+}
+
 void app_update(app_t* app) {
-    const f32 aspect = 800.0f / 600.0f;
+    const f32 aspect = (f32) app->size.x / (f32) app->size.y;
     const f32 zoom = 5.0f;
     Mat4 proj = mat4_ortho_projection(-aspect*zoom, aspect*zoom, zoom, -zoom, 1.0f, -1.0f);
 
     // Object pass
+    glViewport(0, 0, app->size.x, app->size.y);
     obj_t objs[] = {
         [0] = { .pos = vec3(1.0f, 1.0f, 0.0f), .size = vec3s(1.0f), .color = color_rgb_hex(0xff00ff) },
         [1] = { .pos = vec3(-1.0f, -1.0f, 0.0f), .size = vec3s(1.0f), .color = color_rgb_hex(0xff0000) },

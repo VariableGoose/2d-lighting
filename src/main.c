@@ -15,9 +15,7 @@ void update(renderer_t* rend) {
 }
 
 void resize_cb(renderer_t* renderer, i32 width, i32 height) {
-    (void) renderer;
-    printf("Resize: %dx%d\n", width, height);
-    glViewport(0, 0, width, height);
+    app_resize(renderer->user_ptr, ivec2(width, height));
 }
 
 i32 main(void) {

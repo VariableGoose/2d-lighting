@@ -92,8 +92,8 @@ renderer_t* renderer_new(u32 width, u32 height, const char *title) {
         printf("ERROR: GLAD failed to load OpenGL functions.\n");
     }
 
-    emscripten_set_resize_callback("#canvas", NULL, true, internal_resize_cb);
-    emscripten_set_canvas_element_size("#canvas", width, height);
+    emscripten_set_resize_callback("#canvas", rend, true, internal_resize_cb);
+    // emscripten_set_canvas_element_size("#canvas", width, height);
     emscripten_set_window_title(title);
 
     return rend;
