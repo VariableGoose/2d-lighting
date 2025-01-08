@@ -1,16 +1,15 @@
 # 2D lighting
 
-This is a small demo of dynamic 2D lighting and some post processing effect. It
+This is a small demo of dynamic 2D lighting and some post-processing effect. It
 was created to learn how rendering things on the web using Emscripten works and
 understand how 2D lighting works on a basic level.
 
 ## Demo
 
 ![demo video](demo.gif)
-![demo video](demo.mp4)
 
-I have compiled and published a demo onto GitHub pages in this repo which can be
-viewd [here](http://variablegoose.github.io/2d-lighting).
+The demo GIF is extremely compressed. I have compiled and published a demo onto GitHub pages in this repo which can be
+viewed [here](http://variablegoose.github.io/2d-lighting).
 
 There's not much going on inside the program. There's only two lights circling
 around the three boxes, and a third light which cycles colors in the middle.
@@ -20,7 +19,7 @@ around the three boxes, and a third light which cycles colors in the middle.
 In this project I learned a lot about using WebGL and
 [Emscripten](https://emscripten.org/). A bug I ran into was the limited support
 for renderable color formats on textures. I had created textures using the
-    `GL_RGB16F` internal format but that's not considered renderable. Only when
+    `GL_RGB16F` internal format, but that's not considered renderable. Only when
     switching to `GL_RGBA16F` did it work.
 
 ## Building
@@ -31,18 +30,18 @@ it is to switch toolchains and build cross-platform.
 ### Desktop
 
 To build for desktop you need to have both CMake and
-[GLFW](https://www.glfw.org/) installed and available in the system path so
+[GLFW](https://www.glfw.org/) installed and available in the system path, so
 CMake can find it.
 
-Only builds for X11 Linux and WASM has been tested. Unclear if the project build
-on Windows.
+Only builds for X11 Linux and WASM has been tested. Unclear if the project
+builds on Windows.
 
 ```shell
 cmake -B build
 cmake --build build
 ./bin/program
 ```
-To run the program you need to either copy the assets directory into the `bin`
+To run the program you need to either copy the `assets` directory into the `bin`
 folder or run the program from the root directory.
 
 ### WASM
