@@ -28,9 +28,19 @@ extern void renderer_run(renderer_t* renderer);
 
 // -- App ----------------------------------------------------------------------
 
+typedef struct Quad Quad;
+struct Quad {
+    vertex_buffer_t vb;
+    index_buffer_t ib;
+    pipeline_t pipe;
+};
+
 typedef struct app_t app_t;
 struct app_t {
     arena_t* arena;
+
+    Quad quad;
+    shader_t obj_shader;
 
     render_pass_t final_pass;
 };

@@ -13,7 +13,7 @@ typedef enum buffer_usage_t {
     BUFFER_USAGE_STREAM,
 } buffer_usage_t;
 
-// -- color_t --------------------------------------------------------------------
+// -- color_t ------------------------------------------------------------------
 
 typedef struct color_t color_t;
 struct color_t {
@@ -74,6 +74,9 @@ struct shader_t {
 extern shader_t shader_create(str_t vertex_source, str_t fragment_source);
 extern void shader_destroy(shader_t shader);
 extern void shader_use(shader_t shader);
+
+extern void shader_uniform_vec4(shader_t shader, const char* name, Vec4 value);
+extern void shader_uniform_mat4(shader_t shader, const char* name, Mat4 value);
 
 // -- Texture ------------------------------------------------------------------
 
@@ -144,8 +147,8 @@ extern void framebuffer_attach(framebuffer_t fb,
         texture_t texture);
 
 // -- Pipeline -----------------------------------------------------------------
-// Holds all state needed for the GPU to draw. Things like shaders, blend state
-// and vertex layout.
+// Holds all state needed for the GPU to draw. Things like blend state and
+// vertex layout.
 
 typedef enum vertex_attribute_type_t {
     VERTEX_ATTRIB_TYPE_F32,
@@ -192,7 +195,6 @@ struct blend_state_t {
 
 typedef struct pipeline_desc_t pipeline_desc_t;
 struct pipeline_desc_t {
-    shader_t shader;
     vertex_layout_t vertex_layout;
     vertex_buffer_t vertex_buffer;
     blend_state_t blend;

@@ -215,6 +215,16 @@ void shader_use(shader_t shader) {
     glUseProgram(shader.handle);
 }
 
+void shader_uniform_vec4(shader_t shader, const char* name, Vec4 value) {
+    u32 loc = glGetUniformLocation(shader.handle, name);
+    glUniform4fv(loc, 1, &value.x);
+}
+
+void shader_uniform_mat4(shader_t shader, const char* name, Mat4 value) {
+    u32 loc = glGetUniformLocation(shader.handle, name);
+    glUniformMatrix4fv(loc, 1, false, &value.a.x);
+}
+
 // -- Texture ------------------------------------------------------------------
 
 texture_t texture_create(texture_desc_t desc) {
@@ -444,7 +454,6 @@ static GLenum blend_factor_to_gl(blend_factor_t factor) {
 }
 
 void pipeline_bind(pipeline_t pipeline) {
-    shader_use(pipeline.desc.shader);
     glBindVertexArray(pipeline.vao_handle);
 
     blend_state_t blend = pipeline.desc.blend;
