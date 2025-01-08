@@ -41,8 +41,11 @@ struct app_t {
 
     Quad quad;
     shader_t obj_shader;
+    texture_t white_texture;
 
-    render_pass_t final_pass;
+    texture_t obj_render_target;
+    render_pass_t obj_pass;
+    render_pass_t screen_pass;
 };
 
 extern app_t* app_init(void);

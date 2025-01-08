@@ -152,6 +152,8 @@ struct Vec3 {
 static inline Vec3 vec3(f32 x, f32 y, f32 z) { return (Vec3) {x, y, z}; }
 static inline Vec3 vec3s(f32 scaler) { return (Vec3) {scaler, scaler, scaler}; }
 
+#define vec3_arg(vec) (vec).x, (vec).y, (vec).z
+
 // Vec4
 typedef struct Vec4 Vec4;
 struct Vec4 {
@@ -223,6 +225,14 @@ static inline Mat4 mat4_translate(Mat4 mat, Vec3 translation) {
     result.d.x += translation.x;
     result.d.y += translation.y;
     result.d.z += translation.z;
+    return result;
+}
+
+static inline Mat4 mat4_scale(Mat4 mat, Vec3 scale) {
+    Mat4 result = mat;
+    result.a.x *= scale.x;
+    result.b.y *= scale.y;
+    result.c.z *= scale.z;
     return result;
 }
 

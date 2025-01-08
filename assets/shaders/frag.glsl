@@ -9,7 +9,9 @@ out vec4 frag_color;
 in vec2 f_uv;
 
 uniform vec4 color;
+uniform vec4 ambient;
+uniform sampler2D tex;
 
 void main() {
-    frag_color = color;
+    frag_color = texture(tex, f_uv) * color * ambient;
 }
