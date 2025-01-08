@@ -93,13 +93,34 @@ void app_shutdown(app_t* app) {
 
 void app_update(app_t* app) {
     const f32 aspect = 800.0f / 600.0f;
-    Mat4 proj = mat4_ortho_projection(-aspect, aspect, 1.0f, -1.0f, 1.0f, -1.0f);
+    const f32 zoom = 5.0f;
+    Mat4 proj = mat4_ortho_projection(-aspect*zoom, aspect*zoom, zoom, -zoom, 1.0f, -1.0f);
 
     RENDER_PASS(&app->final_pass) {
-        shader_use(app->obj_shader);
-        color_t color = color_rgb_hex(0xff00ff);
-        Vec4 v4_color = *(Vec4 *) &color;
-        shader_uniform_vec4(app->obj_shader, "color", v4_color);
-        draw_quad(app->quad);
+        {
+            Mat4 transform = MAT4_IDENTITY;
+            transform = mat4_translate(transform, vec3(1.0f, 0.0f, 0.0f));
+
+            shader_use(app->obj_shader);
+            color_t color = color_rgb_hex(0xff00ff);
+            Vec4 v4_color = *(Vec4 *) &color;
+            shader_uniform_vec4(app->obj_shader, "color", v4_color);
+            shader_uniform_mat4(app->obj_shader, "proj", proj);
+            shader_uniform_mat4(app->obj_shader, "transform", transform);
+            draw_quad(app->quad);
+        }
+
+        {
+            Mat4 transform = MAT4_IDENTITY;
+            transform = mat4_translate(transform, vec3(-1.0f, 0.0f, 0.0f));
+
+            shader_use(app->obj_shader);
+            color_t color = color_rgb_hex(0x00ff00);
+            Vec4 v4_color = *(Vec4 *) &color;
+            shader_uniform_vec4(app->obj_shader, "color", v4_color);
+            shader_uniform_mat4(app->obj_shader, "proj", proj);
+            shader_uniform_mat4(app->obj_shader, "transform", transform);
+            draw_quad(app->quad);
+        }
     }
 }

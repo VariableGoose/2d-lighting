@@ -143,6 +143,15 @@ static inline Ivec2 ivec2_divs(Ivec2 vec, i32 scaler) { return ivec2(vec.x/scale
 
 #define vec2_arg(vec) (vec).x, (vec).y
 
+// Vec3
+typedef struct Vec3 Vec3;
+struct Vec3 {
+    f32 x, y, z;
+};
+
+static inline Vec3 vec3(f32 x, f32 y, f32 z) { return (Vec3) {x, y, z}; }
+static inline Vec3 vec3s(f32 scaler) { return (Vec3) {scaler, scaler, scaler}; }
+
 // Vec4
 typedef struct Vec4 Vec4;
 struct Vec4 {
@@ -207,6 +216,14 @@ static inline Mat4 mat4_inv_ortho_projection(f32 left, f32 right, f32 top, f32 b
         {0, 0, z, z_off},
         {0, 0, 0, 1},
     };
+}
+
+static inline Mat4 mat4_translate(Mat4 mat, Vec3 translation) {
+    Mat4 result = mat;
+    result.d.x += translation.x;
+    result.d.y += translation.y;
+    result.d.z += translation.z;
+    return result;
 }
 
 #endif // CORE_H
