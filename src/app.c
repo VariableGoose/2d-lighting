@@ -24,7 +24,14 @@ typedef struct light_t light_t;
 struct light_t {
     Vec3 pos;
     Vec3 size;
+    color_t color;
     float intensity;
+};
+
+typedef struct obj_t obj_t;
+struct obj_t {
+    Vec3 pos;
+    Vec3 size;
     color_t color;
 };
 
@@ -260,11 +267,18 @@ void app_update(app_t* app) {
     Mat4 proj = mat4_ortho_projection(-aspect*zoom, aspect*zoom, zoom, -zoom, 1.0f, -1.0f);
 
     // Object pass
+    obj_t objs[] = {
+        [0] = { .pos = vec3(1.0f, 1.0f, 0.0f), .size = vec3s(1.0f), .color = color_rgb_hex(0xff00ff) },
+        [1] = { .pos = vec3(-1.0f, -1.0f, 0.0f), .size = vec3s(1.0f), .color = color_rgb_hex(0xff0000) },
+        [2] = { .pos = vec3s(0.0f), .size = vec3s(0.1f), .color = COLOR_WHITE },
+    };
     RENDER_PASS(&app->obj_pass) {
-        {
+        for (u32 i = 0; i < arr_len(objs); i++) {
+            obj_t obj = objs[i];
+
             Mat4 transform = MAT4_IDENTITY;
-            transform = mat4_translate(transform, vec3(1.0f, 1.0f, 0.0f));
-            transform = mat4_scale(transform, vec3(1.0f, 1.0f, 1.0f));
+            transform = mat4_translate(transform, obj.pos);
+            transform = mat4_scale(transform, obj.size);
 
             texture_bind(app->white_texture, 0);
             shader_use(app->obj_shader);
@@ -272,46 +286,7 @@ void app_update(app_t* app) {
             shader_uniform_mat4(app->obj_shader, "proj", proj);
             shader_uniform_mat4(app->obj_shader, "transform", transform);
             // Frag
-            color_t color = color_rgb_hex(0xff00ff);
-            Vec4 v4_color = *(Vec4 *) &color;
-            shader_uniform_vec4(app->obj_shader, "color", v4_color);
-            shader_uniform_i32(app->obj_shader, "tex", 0);
-
-            draw_quad(app->quad);
-        }
-
-        {
-            Mat4 transform = MAT4_IDENTITY;
-            transform = mat4_translate(transform, vec3(0.0f, 0.0f, 0.0f));
-            transform = mat4_scale(transform, vec3(1.0f, 1.0f, 1.0f));
-
-            texture_bind(app->white_texture, 0);
-            shader_use(app->obj_shader);
-            // Vert
-            shader_uniform_mat4(app->obj_shader, "proj", proj);
-            shader_uniform_mat4(app->obj_shader, "transform", transform);
-            // Frag
-            color_t color = color_rgb_hex(0x00ff00);
-            Vec4 v4_color = *(Vec4 *) &color;
-            shader_uniform_vec4(app->obj_shader, "color", v4_color);
-            shader_uniform_i32(app->obj_shader, "tex", 0);
-
-            draw_quad(app->quad);
-        }
-
-        {
-            Mat4 transform = MAT4_IDENTITY;
-            transform = mat4_translate(transform, vec3(-1.0f, -1.0f, 0.0f));
-            transform = mat4_scale(transform, vec3(1.0f, 1.0f, 1.0f));
-
-            texture_bind(app->white_texture, 0);
-            shader_use(app->obj_shader);
-            // Vert
-            shader_uniform_mat4(app->obj_shader, "proj", proj);
-            shader_uniform_mat4(app->obj_shader, "transform", transform);
-            // Frag
-            color_t color = color_rgb_f(1.0f, 0.2f, 0.2f);
-            Vec4 v4_color = *(Vec4 *) &color;
+            Vec4 v4_color = *(Vec4 *) &obj.color;
             shader_uniform_vec4(app->obj_shader, "color", v4_color);
             shader_uniform_i32(app->obj_shader, "tex", 0);
 
@@ -321,7 +296,7 @@ void app_update(app_t* app) {
 
     // Light pass
     f32 circle_radius = 4.0f;
-    light_t lights[2] = {
+    light_t lights[] = {
         [0] = {
             .pos = vec3(
                     cosf(get_time() * 2.0f + PI) * circle_radius,
@@ -330,7 +305,7 @@ void app_update(app_t* app) {
                 ),
             .size = vec3(circle_radius * 2.0f, circle_radius * 2.0f, 1.0f),
             .color = color_rgb_hex(0x80ff33),
-            .intensity = 3.0f,
+            .intensity = 2.0f,
         },
         [1] = {
             .pos = vec3(
@@ -340,9 +315,17 @@ void app_update(app_t* app) {
                 ),
             .size = vec3(circle_radius * 2.0f, circle_radius * 2.0f, 1.0f),
             .color = color_rgb_hex(0xff8033),
-            .intensity = 3.0f,
+            .intensity = 1.0f,
+        },
+        [2] = {
+            .pos = vec3s(0.0f),
+            .size = vec3(1.0f, 1.0f, 1.0f),
+            .color = color_hsv(get_time()*90.0f, 1.0f, 1.0f),
+            .intensity = 1.0f,
         },
     };
+
+    glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Lights");
     RENDER_PASS(&app->light_pass) {
         for (u32 i = 0; i < arr_len(lights); i++) {
             light_t light = lights[i];
@@ -365,6 +348,7 @@ void app_update(app_t* app) {
             draw_quad(app->quad);
         }
     }
+    glPopDebugGroup();
 
     // Composition pass
     RENDER_PASS(&app->comp_pass) {
@@ -415,7 +399,6 @@ void app_update(app_t* app) {
         }
     }
     glPopDebugGroup();
-    glViewport(0, 0, 800, 600);
 
     // Upsample
     glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Upsample");
