@@ -34,7 +34,7 @@ if (EMSCRIPTEN)
         PRIVATE "--embed-file=../assets/"
     )
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE EGL)
-    # set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
 else ()
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glfw)
 endif ()
