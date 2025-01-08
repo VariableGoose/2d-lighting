@@ -1,6 +1,5 @@
 #ifdef __EMSCRIPTEN__
 #include <glad/gles2.h>
-#include <GLES3/gl3.h>
 #else
 #include <glad/gl.h>
 #endif
