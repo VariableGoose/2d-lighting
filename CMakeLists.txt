@@ -31,10 +31,10 @@ if (EMSCRIPTEN)
     target_link_options(${CMAKE_PROJECT_NAME}
         PRIVATE "-sMIN_WEBGL_VERSION=2"
         PRIVATE "-sMAX_WEBGL_VERSION=2"
-        PRIVATE "--preload-file=../assets/"
+        PRIVATE "--embed-file=../assets/"
     )
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE EGL)
-    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    # set(CMAKE_EXECUTABLE_SUFFIX ".html")
 else ()
     target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE glfw)
 endif ()
