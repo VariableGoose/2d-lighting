@@ -8,6 +8,7 @@
 #include "core.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
@@ -42,7 +43,9 @@ renderer_t* renderer_new(u32 width, u32 height, const char *title)  {
     // Callbacks
     glfwSetFramebufferSizeCallback(dt->window, internal_resize_cb);
 
-    gladLoadGL(glfwGetProcAddress);
+    if (!gladLoadGL(glfwGetProcAddress)) {
+        printf("ERROR: GLAD failed to load OpenGL functions.\n");
+    }
 
     return rend;
 }

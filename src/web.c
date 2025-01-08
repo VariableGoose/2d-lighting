@@ -13,6 +13,7 @@
 #include <emscripten/html5.h>
 
 #include <EGL/egl.h>
+// #include <GLES2/gl2ext.h>
 #include <glad/gles2.h>
 
 typedef struct em_renderer_t em_renderer_t;
@@ -58,6 +59,7 @@ renderer_t* renderer_new(u32 width, u32 height, const char *title) {
             EGL_DEPTH_SIZE,     8,
             EGL_STENCIL_SIZE,   8,
             EGL_SAMPLE_BUFFERS, 1,
+            EGL_EXTENSIONS,     1,
             EGL_NONE
         }, &config, 1, &num_configs)) {
         printf("ERROR: elgChooseConfig\n");
@@ -86,7 +88,9 @@ renderer_t* renderer_new(u32 width, u32 height, const char *title) {
         .data = em_rend,
     };
 
-    gladLoaderLoadGLES2();
+    if (!gladLoaderLoadGLES2()) {
+        printf("ERROR: GLAD failed to load OpenGL functions.\n");
+    }
 
     emscripten_set_resize_callback("#canvas", NULL, true, internal_resize_cb);
     emscripten_set_canvas_element_size("#canvas", width, height);

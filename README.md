@@ -44,3 +44,6 @@ when the WebGL context is lost.
 </script>
 <script src="your-program.js" type="text/javasript"></script>
 ```
+
+## Notes
+Using `RGBA_F16` works but `RGB_F16` does not.

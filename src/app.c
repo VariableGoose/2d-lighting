@@ -1,8 +1,19 @@
+#ifdef __EMSCRIPTEN__
+#include <glad/gles2.h>
+#include <GLES3/gl3.h>
+#else
 #include <glad/gl.h>
+#endif
+
 #include "core.h"
 #include "program.h"
 #include "render_api.h"
 #include <stdio.h>
+
+#ifdef __EMSCRIPTEN__
+#define glPushDebugGroup(...)
+#define glPopDebugGroup(...)
+#endif
 
 typedef struct vert_t vert_t;
 struct vert_t {
@@ -80,26 +91,39 @@ static post_processing_t post_processing_init(arena_t* arena, str_t vert) {
     str_t bloom_downsample_sample_frag = str_read_file(arena, str_lit("assets/shaders/bloom_downsample.frag.glsl"));
     str_t bloom_upsample_sample_frag = str_read_file(arena, str_lit("assets/shaders/bloom_upsample.frag.glsl"));
 
-    u32 texture_count = 0;
+    u32 pass_count = 0;
     Ivec2 screen_size = ivec2(800, 600);
     while (screen_size.y >= 2) {
-        texture_count++;
+        pass_count++;
         screen_size = ivec2_divs(screen_size, 2);
     }
-    printf("Needed bloom textures: %d\n", texture_count);
+    printf("Needed bloom textures: %d\n", pass_count);
 
-    texture_t* textures = arena_push_array(arena, texture_t, texture_count);
-    render_pass_t* passes = arena_push_array(arena, render_pass_t, texture_count);
+    texture_t* downsample_textures = arena_push_array(arena, texture_t, pass_count);
+    texture_t* upsample_textures = arena_push_array(arena, texture_t, pass_count);
+    render_pass_t* downsample_passes = arena_push_array(arena, render_pass_t, pass_count);
+    render_pass_t* upsample_passes = arena_push_array(arena, render_pass_t, pass_count);
     screen_size = ivec2(800, 600);
-    for (u32 i = 0; i < texture_count; i++) {
-        textures[i] = texture_create((texture_desc_t) {
+    for (u32 i = 0; i < pass_count; i++) {
+        downsample_textures[i] = texture_create((texture_desc_t) {
                 .sampler = TEXTURE_SAMPLER_LINEAR,
-                .format = TEXTURE_FORMAT_RGB_F16,
+                .format = TEXTURE_FORMAT_RGBA_F16,
                 .width = screen_size.x,
                 .height = screen_size.y,
             });
-        passes[i] = render_pass_create((render_pass_desc_t) {
-                .targets = {textures[i]},
+        upsample_textures[i] = texture_create((texture_desc_t) {
+                .sampler = TEXTURE_SAMPLER_LINEAR,
+                .format = TEXTURE_FORMAT_RGBA_F16,
+                .width = screen_size.x,
+                .height = screen_size.y,
+            });
+        downsample_passes[i] = render_pass_create((render_pass_desc_t) {
+                .targets = {downsample_textures[i]},
+                .target_count = 1,
+                .load_op = LOAD_OP_LOAD,
+            });
+        upsample_passes[i] = render_pass_create((render_pass_desc_t) {
+                .targets = {upsample_textures[i]},
                 .target_count = 1,
                 .load_op = LOAD_OP_LOAD,
             });
@@ -117,11 +141,15 @@ static post_processing_t post_processing_init(arena_t* arena, str_t vert) {
             .shader = shader_create(vert, color_correction_frag),
         },
         .bloom = {
-            .texture_count = texture_count,
-            .textures = textures,
-            .passes = passes,
-            .shader_downsample = shader_create(vert, bloom_downsample_sample_frag),
-            .shader_upsample = shader_create(vert, bloom_upsample_sample_frag),
+            .downsample_textures = downsample_textures,
+            .downsample_passes = downsample_passes,
+            .downsample_shader = shader_create(vert, bloom_downsample_sample_frag),
+
+            .upsample_textures = upsample_textures,
+            .upsample_passes = upsample_passes,
+            .upsample_shader = shader_create(vert, bloom_upsample_sample_frag),
+
+            .pass_count = pass_count,
         },
     };
 }
@@ -241,11 +269,14 @@ void app_update(app_t* app) {
 
             texture_bind(app->white_texture, 0);
             shader_use(app->obj_shader);
+            // Vert
+            shader_uniform_mat4(app->obj_shader, "proj", proj);
+            shader_uniform_mat4(app->obj_shader, "transform", transform);
+            // Frag
             color_t color = color_rgb_hex(0xff00ff);
             Vec4 v4_color = *(Vec4 *) &color;
             shader_uniform_vec4(app->obj_shader, "color", v4_color);
-            shader_uniform_mat4(app->obj_shader, "proj", proj);
-            shader_uniform_mat4(app->obj_shader, "transform", transform);
+            shader_uniform_i32(app->obj_shader, "tex", 0);
 
             draw_quad(app->quad);
         }
@@ -257,11 +288,14 @@ void app_update(app_t* app) {
 
             texture_bind(app->white_texture, 0);
             shader_use(app->obj_shader);
+            // Vert
+            shader_uniform_mat4(app->obj_shader, "proj", proj);
+            shader_uniform_mat4(app->obj_shader, "transform", transform);
+            // Frag
             color_t color = color_rgb_hex(0x00ff00);
             Vec4 v4_color = *(Vec4 *) &color;
             shader_uniform_vec4(app->obj_shader, "color", v4_color);
-            shader_uniform_mat4(app->obj_shader, "proj", proj);
-            shader_uniform_mat4(app->obj_shader, "transform", transform);
+            shader_uniform_i32(app->obj_shader, "tex", 0);
 
             draw_quad(app->quad);
         }
@@ -273,11 +307,14 @@ void app_update(app_t* app) {
 
             texture_bind(app->white_texture, 0);
             shader_use(app->obj_shader);
+            // Vert
+            shader_uniform_mat4(app->obj_shader, "proj", proj);
+            shader_uniform_mat4(app->obj_shader, "transform", transform);
+            // Frag
             color_t color = color_rgb_f(1.0f, 0.2f, 0.2f);
             Vec4 v4_color = *(Vec4 *) &color;
             shader_uniform_vec4(app->obj_shader, "color", v4_color);
-            shader_uniform_mat4(app->obj_shader, "proj", proj);
-            shader_uniform_mat4(app->obj_shader, "transform", transform);
+            shader_uniform_i32(app->obj_shader, "tex", 0);
 
             draw_quad(app->quad);
         }
@@ -360,20 +397,22 @@ void app_update(app_t* app) {
     glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Downsample");
     post_processing_t pp = app->pp;
     texture_t src_texture = app->bloom_map_render_target;
-    for (u32 i = 0; i < pp.bloom.texture_count; i++) {
-        glViewport(0, 0, vec2_arg(pp.bloom.textures[i].size));
-        RENDER_PASS(&pp.bloom.passes[i]) {
+    for (u32 i = 0; i < pp.bloom.pass_count; i++) {
+        glViewport(0, 0, vec2_arg(pp.bloom.downsample_textures[i].size));
+        RENDER_PASS(&pp.bloom.downsample_passes[i]) {
             Mat4 transform = MAT4_IDENTITY;
             transform = mat4_scale(transform, vec3(2.0f, 2.0f, 1.0f));
 
             texture_bind(src_texture, 0);
-            shader_use(pp.bloom.shader_downsample);
+            shader_use(pp.bloom.downsample_shader);
             // Vert
-            shader_uniform_mat4(pp.bloom.shader_downsample, "proj", MAT4_IDENTITY);
-            shader_uniform_mat4(pp.bloom.shader_downsample, "transform", transform);
+            shader_uniform_mat4(pp.bloom.downsample_shader, "proj", MAT4_IDENTITY);
+            shader_uniform_mat4(pp.bloom.downsample_shader, "transform", transform);
+            // Frag
+            shader_uniform_i32(pp.bloom.downsample_shader, "src_texture", 0);
 
             draw_quad(app->quad);
-            src_texture = pp.bloom.textures[i];
+            src_texture = pp.bloom.downsample_textures[i];
         }
     }
     glPopDebugGroup();
@@ -381,26 +420,26 @@ void app_update(app_t* app) {
 
     // Upsample
     glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "Upsample");
-    src_texture = pp.bloom.textures[pp.bloom.texture_count - 1];
-    for (i32 i = pp.bloom.texture_count - 2; i >= 0; i--) {
-        texture_t curr_texture = pp.bloom.textures[i];
+    src_texture = pp.bloom.downsample_textures[pp.bloom.pass_count - 1];
+    for (i32 i = pp.bloom.pass_count - 2; i >= 0; i--) {
+        texture_t curr_texture = pp.bloom.downsample_textures[i];
         glViewport(0, 0, vec2_arg(curr_texture.size));
-        RENDER_PASS(&pp.bloom.passes[i]) {
+        RENDER_PASS(&pp.bloom.upsample_passes[i]) {
             Mat4 transform = MAT4_IDENTITY;
             transform = mat4_scale(transform, vec3(2.0f, 2.0f, 1.0f));
 
             texture_bind(src_texture, 0);
             texture_bind(curr_texture, 1);
-            shader_use(pp.bloom.shader_upsample);
+            shader_use(pp.bloom.upsample_shader);
             // Vert
-            shader_uniform_mat4(pp.bloom.shader_upsample, "proj", MAT4_IDENTITY);
-            shader_uniform_mat4(pp.bloom.shader_upsample, "transform", transform);
+            shader_uniform_mat4(pp.bloom.upsample_shader, "proj", MAT4_IDENTITY);
+            shader_uniform_mat4(pp.bloom.upsample_shader, "transform", transform);
             // Frag
-            shader_uniform_i32(pp.bloom.shader_upsample, "src_texture", 0);
-            shader_uniform_i32(pp.bloom.shader_upsample, "curr_texture", 1);
+            shader_uniform_i32(pp.bloom.upsample_shader, "src_texture", 0);
+            shader_uniform_i32(pp.bloom.upsample_shader, "curr_texture", 1);
 
             draw_quad(app->quad);
-            src_texture = pp.bloom.textures[i + 1];
+            src_texture = pp.bloom.upsample_textures[i + 1];
         }
     }
     glPopDebugGroup();
@@ -412,7 +451,7 @@ void app_update(app_t* app) {
         transform = mat4_scale(transform, vec3(2.0f, 2.0f, 1.0f));
 
         texture_bind(app->comp_render_target, 0);
-        texture_bind(pp.bloom.textures[0], 1);
+        texture_bind(pp.bloom.upsample_textures[0], 1);
         shader_use(pp.color_correction.shader);
         // Vert
         shader_uniform_mat4(pp.color_correction.shader, "proj", MAT4_IDENTITY);

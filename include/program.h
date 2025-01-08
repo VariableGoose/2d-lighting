@@ -44,11 +44,15 @@ struct post_processing_t {
         shader_t shader;
     } color_correction;
     struct {
-        texture_t* textures;
-        render_pass_t* passes;
-        u32 texture_count;
-        shader_t shader_downsample;
-        shader_t shader_upsample;
+        texture_t* downsample_textures;
+        render_pass_t* downsample_passes;
+        shader_t downsample_shader;
+
+        texture_t* upsample_textures;
+        render_pass_t* upsample_passes;
+        shader_t upsample_shader;
+
+        u32 pass_count;
     } bloom;
 };
 

@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 
 #ifdef __EMSCRIPTEN__
 #include <glad/gles2.h>
@@ -306,6 +307,9 @@ texture_t texture_create(texture_desc_t desc) {
         case TEXTURE_FORMAT_RG_F16:
         case TEXTURE_FORMAT_RGB_F16:
         case TEXTURE_FORMAT_RGBA_F16:
+            gl_type = GL_HALF_FLOAT;
+            break;
+
         case TEXTURE_FORMAT_R_F32:
         case TEXTURE_FORMAT_RG_F32:
         case TEXTURE_FORMAT_RGB_F32:
@@ -332,6 +336,8 @@ texture_t texture_create(texture_desc_t desc) {
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_sampler);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_sampler);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 
     glTexImage2D(
             GL_TEXTURE_2D,
@@ -399,6 +405,10 @@ extern void framebuffer_attach(framebuffer_t fb,
             GL_TEXTURE_2D,
             texture.handle,
             0);
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        printf("Framebuffer is not complete: %x\n", status);
+    }
 }
 
 // -- Pipeline -----------------------------------------------------------------
