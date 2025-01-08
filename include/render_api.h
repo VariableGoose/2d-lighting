@@ -222,17 +222,15 @@ typedef enum load_op_t {
 
 typedef struct render_pass_desc_t render_pass_desc_t;
 struct render_pass_desc_t {
-    texture_t target;
+    texture_t targets[32];
+    u32 target_count;
     load_op_t load_op;
     color_t clear_color;
 };
 
 typedef struct render_pass_t render_pass_t;
 struct render_pass_t {
-    texture_t target;
-    load_op_t load_op;
-    color_t clear_color;
-
+    render_pass_desc_t desc;
     framebuffer_t target_fb;
 };
 

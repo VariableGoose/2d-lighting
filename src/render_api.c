@@ -489,9 +489,7 @@ void pipeline_bind(pipeline_t pipeline) {
 
 render_pass_t render_pass_create(render_pass_desc_t desc) {
     render_pass_t rp = {
-        .target = desc.target,
-        .clear_color = desc.clear_color,
-        .load_op = desc.load_op,
+        .desc = desc,
         .target_fb = framebuffer_create(),
     };
     return rp;
@@ -502,14 +500,22 @@ void render_pass_destroy(render_pass_t pass) {
 }
 
 void render_pass_begin(render_pass_t* pass) {
-    if (pass->target.handle != 0) {
+    if (pass->desc.target_count != 0) {
         framebuffer_bind(pass->target_fb);
-        framebuffer_attach(pass->target_fb, FRAMEBUFFER_ATTACHMENT_COLOR, 0, pass->target);
+        GLenum draw_buffers[32];
+        for (u32 i = 0; i < pass->desc.target_count; i++) {
+            draw_buffers[i] = GL_COLOR_ATTACHMENT0 + i;
+            framebuffer_attach(pass->target_fb,
+                    FRAMEBUFFER_ATTACHMENT_COLOR,
+                    i,
+                    pass->desc.targets[i]);
+        }
+        glDrawBuffers(pass->desc.target_count, draw_buffers);
     } else {
         framebuffer_unbind();
     }
-    if (pass->load_op == LOAD_OP_CLEAR) {
-        glClearColor(color_arg(pass->clear_color));
+    if (pass->desc.load_op == LOAD_OP_CLEAR) {
+        glClearColor(color_arg(pass->desc.clear_color));
         glClear(GL_COLOR_BUFFER_BIT);
     }
 }

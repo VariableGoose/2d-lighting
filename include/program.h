@@ -37,6 +37,14 @@ struct Quad {
     pipeline_t pipe;
 };
 
+typedef struct post_processing_t post_processing_t;
+struct post_processing_t {
+    render_pass_t pass;
+    struct {
+        shader_t shader;
+    } color_correction;
+};
+
 typedef struct app_t app_t;
 struct app_t {
     arena_t* arena;
@@ -52,6 +60,12 @@ struct app_t {
 
     texture_t light_render_target;
     render_pass_t light_pass;
+
+    texture_t comp_render_target;
+    texture_t bloom_map_render_target;
+    render_pass_t comp_pass;
+
+    post_processing_t pp;
 
     render_pass_t screen_pass;
 };
