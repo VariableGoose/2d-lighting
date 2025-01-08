@@ -76,4 +76,8 @@ void renderer_run(renderer_t* renderer) {
     }
 }
 
+f32 get_time(void) {
+    return glfwGetTime();
+}
+
 #endif

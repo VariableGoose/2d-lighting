@@ -9,14 +9,8 @@
 #include <glad/gl.h>
 #endif // __EMSCRIPTEN__
 
-static arena_t* arena = NULL;
-static arena_t* frame_arena = NULL;
-
 void update(renderer_t* rend) {
-    arena_clear(frame_arena);
-
     app_update(rend->user_ptr);
-
     renderer_swap_buffers(rend);
 }
 
@@ -27,9 +21,6 @@ void resize_cb(renderer_t* renderer, i32 width, i32 height) {
 }
 
 i32 main(void) {
-    arena = arena_new(4<<20);
-    frame_arena = arena_new(4<<20);
-
     renderer_t* rend = renderer_new(800, 600, "Cross-platform rendering");
     rend->resize_cb = resize_cb;
     rend->update_cb = update;

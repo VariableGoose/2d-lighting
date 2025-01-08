@@ -66,7 +66,7 @@ static void draw_quad(Quad quad) {
 }
 
 app_t* app_init(void) {
-    arena_t* arena = arena_new(1<<30);
+    arena_t* arena = arena_new(1<<20);
     app_t* app = arena_push_type(arena, app_t);
 
     str_t vert = str_read_file(arena, str_lit("assets/shaders/vert.glsl"));
@@ -136,8 +136,6 @@ void app_shutdown(app_t* app) {
     arena_free(app->arena);
 }
 
-#include <GLFW/glfw3.h>
-
 void app_update(app_t* app) {
     const f32 aspect = 800.0f / 600.0f;
     const f32 zoom = 5.0f;
@@ -199,9 +197,8 @@ void app_update(app_t* app) {
     app->light_pass.clear_color = ambient;
     RENDER_PASS(&app->light_pass) {
         Mat4 transform = MAT4_IDENTITY;
-        f32 time = glfwGetTime()*2.0f;
         f32 circle_radius = 2.0f;
-        Vec3 pos = vec3(cosf(time) * circle_radius, sinf(time) * circle_radius, 0.0f);
+        Vec3 pos = vec3(cosf(get_time() * 2.0f) * circle_radius, sinf(get_time() * 2.0f) * circle_radius, 0.0f);
         transform = mat4_translate(transform, pos);
         transform = mat4_scale(transform, vec3(5.0f, 5.0f, 1.0f));
 
@@ -214,7 +211,7 @@ void app_update(app_t* app) {
         shader_uniform_mat4(app->light_shader, "transform", transform);
         // Frag
         shader_uniform_vec4(app->light_shader, "color", v4_color);
-        shader_uniform_f32(app->light_shader, "intensity", sinf(time/2.0f) / 2.0f + 0.5f);
+        shader_uniform_f32(app->light_shader, "intensity", sinf(get_time()) / 2.0f + 0.5f);
 
         draw_quad(app->quad);
     }

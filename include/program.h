@@ -26,6 +26,8 @@ extern void renderer_free(renderer_t* renderer);
 extern void renderer_swap_buffers(renderer_t* renderer);
 extern void renderer_run(renderer_t* renderer);
 
+extern f32 get_time(void);
+
 // -- App ----------------------------------------------------------------------
 
 typedef struct Quad Quad;

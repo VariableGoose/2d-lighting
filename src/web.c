@@ -130,4 +130,8 @@ void renderer_run(renderer_t* renderer) {
     emscripten_set_main_loop_arg(internal_main_loop, renderer, 0, true);
 }
 
+f32 get_time(void) {
+    return emscripten_get_now() * 1e-3;
+}
+
 #endif // __EMSCRIPTEN__
