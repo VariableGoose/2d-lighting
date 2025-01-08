@@ -6,6 +6,9 @@ understand how 2D lighting works on a basic level.
 
 ## Demo
 
+![demo video](demo.gif)
+![demo video](demo.mp4)
+
 I have compiled and published a demo onto GitHub pages in this repo which can be
 viewd [here](http://variablegoose.github.io/2d-lighting).
 
