@@ -9,7 +9,7 @@ understand how 2D lighting works on a basic level.
 ![demo video](demo.gif)
 
 The demo GIF is extremely compressed. I have compiled and published a demo onto GitHub pages in this repo which can be
-viewed [here](http://variablegoose.github.io/2d-lighting).
+viewed [here](http://faintforge.github.io/2d-lighting).
 
 There's not much going on inside the program. There's only two lights circling
 around the three boxes, and a third light which cycles colors in the middle.
